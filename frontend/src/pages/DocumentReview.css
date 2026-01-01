@@ -1,0 +1,72 @@
+.validation-status {
+  padding: 16px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.validation-status.passed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.validation-status.failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.validation-status.warning {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.validation-status ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.fields-container {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.confidence-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.confidence-badge.high {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.confidence-badge.medium {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.confidence-badge.low {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.review-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
