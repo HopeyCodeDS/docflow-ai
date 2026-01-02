@@ -58,8 +58,13 @@ async def retry_extraction(
     current_user: dict = Depends(get_current_user)
 ):
     """Retry extraction for document"""
+    from ...infrastructure.monitoring.logging import get_logger
+    logger = get_logger("docflow.api.extractions")
+    
     session = db.get_session()
     try:
+        logger.info("Extraction retry started", document_id=str(document_id))
+        
         document_repo = DocumentRepository(session)
         extraction_repo = ExtractionRepository(session)
         audit_repo = AuditTrailRepository(session)
@@ -76,10 +81,15 @@ async def retry_extraction(
         
         result = use_case.execute(document_id)
         session.commit()
+        logger.info("Extraction retry successful", document_id=str(document_id))
         return result
     except Exception as e:
         session.rollback()
-        raise HTTPException(status_code=400, detail=str(e))
+        import traceback
+        error_detail = str(e) or repr(e)
+        error_traceback = traceback.format_exc()
+        logger.error("Extraction retry failed", error=error_detail, error_type=type(e).__name__, document_id=str(document_id), traceback=error_traceback)
+        raise HTTPException(status_code=400, detail=error_detail or f"Extraction failed: {type(e).__name__}")
     finally:
         session.close()
 

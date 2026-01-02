@@ -73,11 +73,20 @@ class ExtractFieldsUseCase:
             schema = self._get_extraction_schema(document_type.value)
             
             # Run LLM extraction
-            llm_result = self.llm_service.extract_fields(
-                ocr_result.text,
-                document_type.value,
-                schema
-            )
+            try:
+                llm_result = self.llm_service.extract_fields(
+                    ocr_result.text,
+                    document_type.value,
+                    schema
+                )
+            except Exception as llm_error:
+                # If LLM fails, create a basic extraction with OCR only
+                from ...infrastructure.external.llm.base import LLMExtractionResult
+                llm_result = LLMExtractionResult(
+                    structured_data={},  # Empty structured data
+                    confidence_scores={},
+                    metadata={"error": str(llm_error), "fallback": "ocr_only"}
+                )
             
             # Create extraction entity
             extraction = Extraction(

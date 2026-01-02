@@ -36,16 +36,24 @@ const DocumentUpload: React.FC = () => {
         },
       });
 
-      // Trigger extraction
-      try {
-        await axios.post(`/api/v1/documents/${response.data.id}/extraction/retry`);
-      } catch (extractError) {
-        console.error('Failed to trigger extraction', extractError);
-      }
-
+      // Extraction is now automatically triggered on the backend
+      // Navigate to dashboard - extraction will complete in background
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Upload failed');
+      console.error('Upload error:', err);
+      let errorMessage = 'Upload failed';
+      
+      if (err.response?.data) {
+        // Try different error formats
+        errorMessage = err.response.data.detail || 
+                      err.response.data.message || 
+                      err.response.data.error?.message ||
+                      JSON.stringify(err.response.data);
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }

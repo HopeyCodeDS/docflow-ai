@@ -28,19 +28,19 @@ const DocumentReview: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [extractionRes, validationRes] = await Promise.all([
-        axios.get(`/api/v1/documents/${documentId}/extraction`).catch(() => null),
-        axios.get(`/api/v1/documents/${documentId}/validation`).catch(() => null),
-      ]);
+      // Only fetch extraction first - validation requires extraction to exist
+      const extractionRes = await axios.get(`/api/v1/documents/${documentId}/extraction`).catch(() => null);
 
       if (extractionRes) {
         setExtraction(extractionRes.data);
         // Initialize corrections with extracted data
         setCorrections(extractionRes.data.structured_data || {});
-      }
-
-      if (validationRes) {
-        setValidation(validationRes.data);
+        
+        // Now fetch validation if extraction exists
+        const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`).catch(() => null);
+        if (validationRes) {
+          setValidation(validationRes.data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch data', error);
@@ -84,11 +84,34 @@ const DocumentReview: React.FC = () => {
     );
   }
 
+  const triggerExtraction = async () => {
+    setLoading(true);
+    try {
+      await axios.post(`/api/v1/documents/${documentId}/extraction/retry`);
+      // Wait a moment then refresh
+      setTimeout(() => {
+        fetchData();
+      }, 2000);
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to trigger extraction');
+      setLoading(false);
+    }
+  };
+
   if (!extraction) {
     return (
       <div className="container">
         <div className="card">
+          <h2>Review Document</h2>
           <p>Extraction not found. The document may still be processing.</p>
+          <div style={{ marginTop: '20px' }}>
+            <button onClick={triggerExtraction} className="btn btn-primary" disabled={loading}>
+              {loading ? 'Processing...' : 'Start Extraction'}
+            </button>
+            <button onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );

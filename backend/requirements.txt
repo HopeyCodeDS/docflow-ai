@@ -4,6 +4,7 @@ uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
@@ -18,7 +19,10 @@ boto3==1.29.7
 minio==7.2.0
 
 # OCR
+paddlepaddle
 paddleocr==2.7.3
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
 pytesseract==0.3.10
 Pillow==10.1.0
 pdf2image==1.16.3

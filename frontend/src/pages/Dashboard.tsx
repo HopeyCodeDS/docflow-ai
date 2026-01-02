@@ -33,6 +33,20 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleDelete = async (documentId: string, filename: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/v1/documents/${documentId}`);
+      // Refresh the documents list
+      fetchDocuments();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to delete document');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const badges: { [key: string]: string } = {
       UPLOADED: 'badge-info',
@@ -98,13 +112,22 @@ const Dashboard: React.FC = () => {
                     </td>
                     <td>{new Date(doc.uploaded_at).toLocaleDateString()}</td>
                     <td>
-                      <Link
-                        to={`/review/${doc.id}`}
-                        className="btn btn-secondary"
-                        style={{ fontSize: '12px', padding: '6px 12px' }}
-                      >
-                        Review
-                      </Link>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <Link
+                          to={`/review/${doc.id}`}
+                          className="btn btn-secondary"
+                          style={{ fontSize: '12px', padding: '6px 12px' }}
+                        >
+                          Review
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(doc.id, doc.original_filename)}
+                          className="btn btn-danger"
+                          style={{ fontSize: '12px', padding: '6px 12px' }}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -28,8 +28,9 @@ class LLMServiceFactory:
                 raise ValueError("OPENAI_API_KEY environment variable is required")
             return OpenAIService(api_key=api_key)
         elif provider == "ollama":
-            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-            return OllamaService(base_url=base_url)
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+            model = os.getenv("OLLAMA_MODEL", "llama3.1")
+            return OllamaService(base_url=base_url, model=model)
         else:
             raise ValueError(f"Unknown LLM provider: {provider}")
 

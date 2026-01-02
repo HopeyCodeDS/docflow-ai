@@ -24,11 +24,22 @@ async def get_validation(
     current_user: dict = Depends(get_current_user)
 ):
     """Get validation result for document"""
+    from ...infrastructure.monitoring.logging import get_logger
+    logger = get_logger("docflow.api.validations")
+    
     session = db.get_session()
     try:
         document_repo = DocumentRepository(session)
         extraction_repo = ExtractionRepository(session)
         validation_repo = ValidationResultRepository(session)
+        
+        # Check if extraction exists first
+        extraction = extraction_repo.get_by_document_id(document_id)
+        if not extraction:
+            raise HTTPException(
+                status_code=404, 
+                detail="Extraction not found. Please extract the document first."
+            )
         
         use_case = ValidateDataUseCase(
             document_repository=document_repo,
@@ -40,8 +51,11 @@ async def get_validation(
         result = use_case.execute(document_id)
         session.commit()
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         session.rollback()
+        logger.error("Validation failed", error=str(e), error_type=type(e).__name__, document_id=str(document_id))
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         session.close()

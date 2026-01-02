@@ -1,6 +1,7 @@
 import io
 import os
 from typing import Dict, Any, List
+import numpy as np
 from PIL import Image
 from pdf2image import convert_from_bytes
 from paddleocr import PaddleOCR
@@ -29,27 +30,45 @@ class PaddleOCRService(OCRService):
         layout = []
         
         for img_idx, img in enumerate(images):
-            result = self.ocr.ocr(img, cls=True)
+            # Convert PIL Image to numpy array for PaddleOCR
+            if isinstance(img, Image.Image):
+                img_array = np.array(img)
+            else:
+                img_array = img
+            
+            result = self.ocr.ocr(img_array, cls=True)
             
             page_text = []
             page_layout = []
             
             if result and result[0]:
                 for line in result[0]:
-                    if line:
-                        box, (text, confidence) = line
-                        page_text.append(text)
-                        page_layout.append({
-                            "text": text,
-                            "confidence": confidence,
-                            "bbox": {
-                                "x": box[0][0],
-                                "y": box[0][1],
-                                "width": box[2][0] - box[0][0],
-                                "height": box[2][1] - box[0][1]
-                            },
-                            "page": img_idx
-                        })
+                    if line and len(line) >= 2:
+                        try:
+                            box = line[0]
+                            text_info = line[1]
+                            if isinstance(text_info, tuple) and len(text_info) >= 2:
+                                text, confidence = text_info[0], text_info[1]
+                            else:
+                                text = str(text_info) if text_info else ""
+                                confidence = 1.0
+                            
+                            if box and len(box) >= 4:
+                                page_text.append(text)
+                                page_layout.append({
+                                    "text": text,
+                                    "confidence": confidence,
+                                    "bbox": {
+                                        "x": box[0][0],
+                                        "y": box[0][1],
+                                        "width": box[2][0] - box[0][0],
+                                        "height": box[2][1] - box[0][1]
+                                    },
+                                    "page": img_idx
+                                })
+                        except (ValueError, IndexError, TypeError) as e:
+                            # Skip malformed lines
+                            continue
             
             all_text.append(" ".join(page_text))
         

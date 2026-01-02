@@ -23,8 +23,13 @@ async def upload_document(
     current_user: dict = Depends(get_current_user)
 ):
     """Upload a document"""
+    from ...infrastructure.monitoring.logging import get_logger
+    logger = get_logger("docflow.api.documents")
+    
     session = db.get_session()
     try:
+        logger.info("Document upload started", filename=file.filename, user_id=str(current_user["id"]))
+        
         document_repo = DocumentRepository(session)
         audit_repo = AuditTrailRepository(session)
         
@@ -38,9 +43,58 @@ async def upload_document(
         
         document = use_case.execute(file.file, file.filename, current_user["id"])
         session.commit()
+        logger.info("Document upload successful", document_id=str(document.id))
+        
+        # Trigger extraction automatically in background
+        try:
+            from ...application.use_cases.extract_fields import ExtractFieldsUseCase
+            from ...infrastructure.persistence.repositories import ExtractionRepository
+            from ...infrastructure.external.ocr.factory import OCRServiceFactory
+            from ...infrastructure.external.llm.factory import LLMServiceFactory
+            from ...domain.services.document_type_classifier import DocumentTypeClassifier
+            
+            # Note: This will run synchronously for now, but could be made async with BackgroundTasks
+            # For now, we'll trigger it but not wait for it to complete
+            import threading
+            
+            def trigger_extraction():
+                extraction_session = db.get_session()
+                try:
+                    extraction_doc_repo = DocumentRepository(extraction_session)
+                    extraction_repo = ExtractionRepository(extraction_session)
+                    extraction_audit_repo = AuditTrailRepository(extraction_session)
+                    
+                    extract_use_case = ExtractFieldsUseCase(
+                        document_repository=extraction_doc_repo,
+                        extraction_repository=extraction_repo,
+                        audit_trail_repository=extraction_audit_repo,
+                        ocr_service=OCRServiceFactory.create(),
+                        llm_service=LLMServiceFactory.create(),
+                        storage_service=storage_service,
+                        document_type_classifier=DocumentTypeClassifier(),
+                    )
+                    
+                    extract_use_case.execute(document.id)
+                    extraction_session.commit()
+                    logger.info("Extraction completed", document_id=str(document.id))
+                except Exception as e:
+                    extraction_session.rollback()
+                    import traceback
+                    error_traceback = traceback.format_exc()
+                    logger.error("Background extraction failed", error=str(e), error_type=type(e).__name__, document_id=str(document.id), traceback=error_traceback)
+                finally:
+                    extraction_session.close()
+            
+            # Run extraction in background thread
+            thread = threading.Thread(target=trigger_extraction, daemon=True)
+            thread.start()
+        except Exception as e:
+            logger.warning("Failed to trigger background extraction", error=str(e), document_id=str(document.id))
+        
         return document
     except Exception as e:
         session.rollback()
+        logger.error("Document upload failed", error=str(e), error_type=type(e).__name__, filename=file.filename)
         raise HTTPException(status_code=400, detail=str(e))
     finally:
         session.close()
@@ -148,6 +202,9 @@ async def delete_document(
     current_user: dict = Depends(get_current_user)
 ):
     """Delete document"""
+    from ...infrastructure.monitoring.logging import get_logger
+    logger = get_logger("docflow.api.documents")
+    
     session = db.get_session()
     try:
         document_repo = DocumentRepository(session)
@@ -155,11 +212,24 @@ async def delete_document(
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         
-        storage_service.delete_file(document.storage_path)
-        # Document will be deleted via cascade
-        session.delete(session.query(DocumentRepository).filter_by(id=document_id).first())
+        # Delete file from storage
+        try:
+            storage_service.delete_file(document.storage_path)
+        except Exception as e:
+            logger.warning("Failed to delete file from storage", error=str(e), storage_path=document.storage_path)
+        
+        # Delete document (cascade will handle related records)
+        document_repo.delete(document_id)
         session.commit()
-        return {"message": "Document deleted"}
+        
+        logger.info("Document deleted", document_id=str(document_id), filename=document.original_filename)
+        return {"message": "Document deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error("Failed to delete document", error=str(e), error_type=type(e).__name__, document_id=str(document_id))
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
     finally:
         session.close()
 

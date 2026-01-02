@@ -64,6 +64,13 @@ class DocumentRepository:
             self.session.flush()
         return self._to_entity(model)
     
+    def delete(self, document_id: UUID) -> None:
+        """Delete document by ID"""
+        model = self.session.query(DocumentModel).filter(DocumentModel.id == document_id).first()
+        if model:
+            self.session.delete(model)
+            self.session.flush()
+    
     def _to_entity(self, model: DocumentModel) -> Document:
         """Convert model to entity"""
         return Document(
@@ -241,7 +248,6 @@ class AuditTrailRepository:
             changes=audit_trail.changes,
             audit_metadata=audit_trail.metadata,
             performed_at=audit_trail.performed_at,
-            created_at=audit_trail.created_at,
         )
         self.session.add(model)
         self.session.flush()
@@ -264,7 +270,7 @@ class AuditTrailRepository:
             changes=model.changes or {},
             metadata=model.audit_metadata or {},
             performed_at=model.performed_at,
-            created_at=model.created_at,
+            created_at=model.performed_at,  # Use performed_at as created_at since model doesn't have created_at
         )
 
 
