@@ -4,8 +4,14 @@ import axios from 'axios';
 import './DocumentReview.css';
 
 interface Extraction {
+  id: string;
+  document_id: string;
+  extraction_method: string;
+  raw_text?: string;
   structured_data: { [key: string]: any };
   confidence_scores: { [key: string]: number };
+  extracted_at: string;
+  extraction_metadata?: { [key: string]: any };
 }
 
 interface Validation {
@@ -36,10 +42,12 @@ const DocumentReview: React.FC = () => {
         // Initialize corrections with extracted data
         setCorrections(extractionRes.data.structured_data || {});
         
-        // Now fetch validation if extraction exists
-        const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`).catch(() => null);
-        if (validationRes) {
-          setValidation(validationRes.data);
+        // Only fetch validation if structured_data exists (validation requires structured data)
+        if (extractionRes.data.structured_data && Object.keys(extractionRes.data.structured_data).length > 0) {
+          const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`).catch(() => null);
+          if (validationRes) {
+            setValidation(validationRes.data);
+          }
         }
       }
     } catch (error) {
@@ -137,30 +145,52 @@ const DocumentReview: React.FC = () => {
         )}
 
         <div className="fields-container">
-          {Object.entries(extraction.structured_data || {}).map(([field, value]) => {
-            const confidence = extraction.confidence_scores[field] || 0;
-            return (
-              <div key={field} className="field-group">
-                <label>
-                  {field.replace(/_/g, ' ').toUpperCase()}
-                  <span className={`confidence-badge ${getConfidenceClass(confidence)}`}>
-                    {Math.round(confidence * 100)}%
-                  </span>
-                </label>
-                <input
-                  type="text"
-                  value={corrections[field] || value || ''}
-                  onChange={(e) => handleFieldChange(field, e.target.value)}
-                />
-                <div className="confidence-bar">
-                  <div
-                    className={`confidence-fill ${getConfidenceClass(confidence)}`}
-                    style={{ width: `${confidence * 100}%` }}
-                  />
+          {Object.keys(extraction.structured_data || {}).length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              <p><strong>No structured data extracted.</strong></p>
+              <p style={{ marginTop: '10px', fontSize: '14px' }}>
+                The document was processed but no fields were extracted. This may happen if:
+              </p>
+              <ul style={{ textAlign: 'left', display: 'inline-block', marginTop: '10px' }}>
+                <li>The document format is not recognized</li>
+                <li>The OCR text extraction was incomplete</li>
+                <li>The LLM extraction failed</li>
+              </ul>
+              {extraction.raw_text && (
+                <div style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '4px', textAlign: 'left' }}>
+                  <strong>Extracted Text:</strong>
+                  <pre style={{ marginTop: '10px', whiteSpace: 'pre-wrap', fontSize: '12px', maxHeight: '200px', overflow: 'auto' }}>
+                    {extraction.raw_text.substring(0, 500)}{extraction.raw_text.length > 500 ? '...' : ''}
+                  </pre>
                 </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          ) : (
+            Object.entries(extraction.structured_data || {}).map(([field, value]) => {
+              const confidence = extraction.confidence_scores[field] || 0;
+              return (
+                <div key={field} className="field-group">
+                  <label>
+                    {field.replace(/_/g, ' ').toUpperCase()}
+                    <span className={`confidence-badge ${getConfidenceClass(confidence)}`}>
+                      {Math.round(confidence * 100)}%
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={corrections[field] || value || ''}
+                    onChange={(e) => handleFieldChange(field, e.target.value)}
+                  />
+                  <div className="confidence-bar">
+                    <div
+                      className={`confidence-fill ${getConfidenceClass(confidence)}`}
+                      style={{ width: `${confidence * 100}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         <div className="review-actions">

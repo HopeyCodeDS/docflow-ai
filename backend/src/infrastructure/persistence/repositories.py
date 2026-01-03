@@ -150,7 +150,6 @@ class ValidationResultRepository:
             validation_errors=[{"field": e.field, "message": e.message, "severity": e.severity}
                              for e in validation_result.validation_errors] if validation_result.validation_errors else [],
             validated_at=validation_result.validated_at,
-            created_at=validation_result.created_at,
         )
         self.session.add(model)
         self.session.flush()
@@ -174,7 +173,7 @@ class ValidationResultRepository:
             validation_status=ValidationStatus(model.validation_status),
             validation_errors=errors,
             validated_at=model.validated_at,
-            created_at=model.created_at,
+            created_at=model.validated_at,  # Use validated_at as created_at since model doesn't have created_at
         )
 
 

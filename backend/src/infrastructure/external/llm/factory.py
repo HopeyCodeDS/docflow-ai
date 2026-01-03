@@ -28,7 +28,10 @@ class LLMServiceFactory:
                 raise ValueError("OPENAI_API_KEY environment variable is required")
             return OpenAIService(api_key=api_key)
         elif provider == "ollama":
-            base_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+            # If URL points to 'ollama' service (Docker service name), use host.docker.internal instead
+            if "ollama:11434" in base_url:
+                base_url = base_url.replace("ollama:11434", "host.docker.internal:11434")
             model = os.getenv("OLLAMA_MODEL", "llama3.1")
             return OllamaService(base_url=base_url, model=model)
         else:

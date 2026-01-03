@@ -17,6 +17,7 @@ lib/
 lib64/
 parts/
 sdist/
+test_documents/
 var/
 wheels/
 *.egg-info/
