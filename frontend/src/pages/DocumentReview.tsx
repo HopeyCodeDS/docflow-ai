@@ -43,10 +43,18 @@ const DocumentReview: React.FC = () => {
         setCorrections(extractionRes.data.structured_data || {});
         
         // Only fetch validation if structured_data exists (validation requires structured data)
-        if (extractionRes.data.structured_data && Object.keys(extractionRes.data.structured_data).length > 0) {
-          const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`).catch(() => null);
-          if (validationRes) {
-            setValidation(validationRes.data);
+        const hasStructuredData = extractionRes.data.structured_data && 
+                                  Object.keys(extractionRes.data.structured_data).length > 0;
+        
+        if (hasStructuredData) {
+          try {
+            const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`);
+            if (validationRes) {
+              setValidation(validationRes.data);
+            }
+          } catch (error: any) {
+            // Silently ignore validation errors - it's not critical for review
+            console.warn('Validation fetch failed:', error.response?.data?.detail);
           }
         }
       }

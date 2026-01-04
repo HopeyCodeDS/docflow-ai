@@ -164,14 +164,14 @@ class ValidationResultRepository:
     
     def _to_entity(self, model: ValidationResultModel) -> ValidationResult:
         """Convert model to entity"""
-        from ...domain.entities.validation_result import ValidationError
-        errors = [ValidationError(**e) for e in (model.validation_errors or [])]
+        # Keep errors as dicts since ValidationResult entity expects List[Dict[str, Any]]
+        errors = model.validation_errors or []
         return ValidationResult(
             id=model.id,
             extraction_id=model.extraction_id,
             validation_rules=model.validation_rules,
             validation_status=ValidationStatus(model.validation_status),
-            validation_errors=errors,
+            validation_errors=errors,  # Already dicts from database
             validated_at=model.validated_at,
             created_at=model.validated_at,  # Use validated_at as created_at since model doesn't have created_at
         )
