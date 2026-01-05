@@ -66,7 +66,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-ollama}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
       DEFAULT_OCR_PROVIDER: ${DEFAULT_OCR_PROVIDER:-paddleocr}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     ports:

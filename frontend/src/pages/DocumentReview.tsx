@@ -164,6 +164,26 @@ const DocumentReview: React.FC = () => {
                 <li>The OCR text extraction was incomplete</li>
                 <li>The LLM extraction failed</li>
               </ul>
+              {extraction.extraction_metadata && (
+                <div style={{ marginTop: '15px', padding: '10px', background: '#fff3cd', borderRadius: '4px', fontSize: '12px', textAlign: 'left' }}>
+                  <strong>Extraction Details:</strong>
+                  <ul style={{ marginTop: '5px', paddingLeft: '20px', marginBottom: '0' }}>
+                    <li>OCR Provider: {extraction.extraction_metadata.ocr_provider || 'Unknown'}</li>
+                    <li>LLM Provider: {extraction.extraction_metadata.llm_provider || 'N/A'}</li>
+                    <li>LLM Model: {extraction.extraction_metadata.llm_model || 'N/A'}</li>
+                    {extraction.extraction_metadata.error && (
+                      <li style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                        <strong>Error:</strong> {extraction.extraction_metadata.error}
+                      </li>
+                    )}
+                    {extraction.extraction_metadata.fallback && (
+                      <li style={{ color: '#856404' }}>
+                        <strong>Fallback:</strong> {extraction.extraction_metadata.fallback}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
               {extraction.raw_text && (
                 <div style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '4px', textAlign: 'left' }}>
                   <strong>Extracted Text:</strong>

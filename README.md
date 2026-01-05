@@ -75,6 +75,24 @@ The system follows **Hexagonal Architecture** with clear separation between:
    - Password: `admin123`
    - **⚠️ Change these in production!**
 
+6. **Ollama Setup (if using Ollama as LLM provider)**
+   - Install Ollama on your host machine: https://ollama.ai
+   - Pull a model: `ollama pull llama3.1` (or another model)
+   - Ensure Ollama is running: `ollama serve`
+   - **Memory Requirements**: Models need sufficient RAM:
+     - `llama3.1` (8B): ~4.8 GiB
+     - `mistral` (7B): ~4.1 GiB
+     - If you get "model requires more system memory" errors:
+       - Free up system memory
+       - Use a smaller/quantized model
+       - Increase Docker memory allocation (Settings → Resources → Memory)
+   - Configure in `.env`:
+     ```
+     DEFAULT_LLM_PROVIDER=ollama
+     OLLAMA_BASE_URL=http://localhost:11434
+     OLLAMA_MODEL=llama3.1
+     ```
+
 ### Local Development (without Docker)
 
 1. **Backend Setup**
@@ -149,6 +167,32 @@ The system follows **Hexagonal Architecture** (Ports & Adapters):
 - ✅ JWT authentication with RBAC
 - ✅ Structured logging and metrics
 - ✅ Error handling with retry strategies
+
+## Troubleshooting
+
+### Ollama Memory Issues
+
+If you see errors like `"model requires more system memory (4.8 GiB) than is available (3.1 GiB)"`:
+
+1. **Free up system memory**: Close other applications
+2. **Use a smaller model**: Try a quantized version or smaller model
+3. **Increase Docker memory**: Docker Desktop → Settings → Resources → Memory (increase to 6GB+)
+4. **Check available models**: `ollama list` to see installed models and their sizes
+
+### Extraction Returns Empty Structured Data
+
+If OCR works but structured data extraction fails:
+
+1. **Check extraction metadata** on the review page - it shows the exact error
+2. **Verify Ollama connection**: `curl http://localhost:11434/api/tags`
+3. **Check model availability**: Ensure the model specified in `OLLAMA_MODEL` is installed
+4. **Review backend logs**: `docker-compose logs backend` for detailed error messages
+
+### Frontend Can't Connect to Backend
+
+1. **Check proxy configuration**: `frontend/package.json` should have `"proxy": "http://backend:8000"` for Docker
+2. **Verify services are running**: `docker-compose ps`
+3. **Check backend health**: `curl http://localhost:8000/health`
 
 ## License
 

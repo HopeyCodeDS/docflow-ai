@@ -12,6 +12,7 @@ from ...infrastructure.persistence.repositories import (
 from ...infrastructure.external.ocr.base import OCRService
 from ...infrastructure.external.llm.base import LLMService
 from ...infrastructure.external.storage.base import StorageService
+from ...infrastructure.external.llm.base import LLMExtractionResult
 from ...application.dtos.extraction_dto import ExtractionDTO
 
 
@@ -80,12 +81,23 @@ class ExtractFieldsUseCase:
                     schema
                 )
             except Exception as llm_error:
+                # Log the error for debugging
+                import traceback
+                error_details = {
+                    "error": str(llm_error),
+                    "error_type": type(llm_error).__name__,
+                    "traceback": traceback.format_exc()
+                }
                 # If LLM fails, create a basic extraction with OCR only
-                from ...infrastructure.external.llm.base import LLMExtractionResult
+                
                 llm_result = LLMExtractionResult(
                     structured_data={},  # Empty structured data
                     confidence_scores={},
-                    metadata={"error": str(llm_error), "fallback": "ocr_only"}
+                    metadata={
+                        "error": str(llm_error),
+                        "error_type": type(llm_error).__name__,
+                        "fallback": "ocr_only"
+                    }
                 )
             
             # Create extraction entity
