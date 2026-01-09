@@ -62,7 +62,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-documents}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-will-be-changed-in-production}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-ollama}

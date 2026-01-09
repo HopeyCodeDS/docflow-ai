@@ -9,6 +9,8 @@ from ...infrastructure.persistence.database import Database
 from ...infrastructure.persistence.repositories import DocumentRepository, AuditTrailRepository
 from ...infrastructure.external.storage.factory import StorageServiceFactory
 from ...api.middleware.auth import get_current_user
+from ...infrastructure.monitoring.logging import get_logger
+from ...domain.entities.document import DocumentStatus
 
 router = APIRouter()
 
@@ -23,7 +25,6 @@ async def upload_document(
     current_user: dict = Depends(get_current_user)
 ):
     """Upload a document"""
-    from ...infrastructure.monitoring.logging import get_logger
     logger = get_logger("docflow.api.documents")
     
     session = db.get_session()
@@ -110,8 +111,6 @@ async def list_documents(
     """List documents"""
     session = db.get_session()
     try:
-        from ...domain.entities.document import DocumentStatus
-        
         document_repo = DocumentRepository(session)
         status_enum = DocumentStatus(status) if status else None
         documents = document_repo.list(skip=skip, limit=limit, status=status_enum)
@@ -202,7 +201,6 @@ async def delete_document(
     current_user: dict = Depends(get_current_user)
 ):
     """Delete document"""
-    from ...infrastructure.monitoring.logging import get_logger
     logger = get_logger("docflow.api.documents")
     
     session = db.get_session()

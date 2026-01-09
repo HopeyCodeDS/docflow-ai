@@ -70,4 +70,5 @@ minio-data/
 # Temporary files
 *.tmp
 *.temp
+TMS-explanation.md
 

@@ -32,8 +32,8 @@ class ExportToTMSUseCase:
         self.review_repository = review_repository
         self.export_repository = export_repository
         self.audit_trail_repository = audit_trail_repository
-        self.tms_api_url = tms_api_url or os.getenv("TMS_API_URL", "http://mock-tms:8080/api")
-        self.tms_api_key = tms_api_key or os.getenv("TMS_API_KEY", "")
+        self.tms_api_url = tms_api_url or os.getenv("TMS_API_URL", "http://mock-tms:8080/api") // TODO: Change to the actual TMS API URL in production
+        self.tms_api_key = tms_api_key or os.getenv("TMS_API_KEY", "") // TODO: Change to the actual TMS API key in production
     
     def execute(self, document_id: UUID, export_data: ExportCreateDTO, exported_by: UUID) -> ExportDTO:
         """
@@ -116,9 +116,9 @@ class ExportToTMSUseCase:
         """Format data for TMS export"""
         return {
             "document_id": str(document.id),
-            "document_type": document.document_type.value if document.document_type else "UNKNOWN",
+            "document_type": document.document_type.value if document.document_type else "UNKNOWN", # for example: "CMR", "INVOICE", "DELIVERY_NOTE"
             "original_filename": document.original_filename,
-            "data": data,
+            "data": data, # The extracted structured fields
             "exported_at": datetime.utcnow().isoformat(),
         }
     
