@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import * as documentsService from '../services/documents';
 import './DocumentUpload.css';
 
 const DocumentUpload: React.FC = () => {
@@ -10,7 +10,7 @@ const DocumentUpload: React.FC = () => {
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
       setError('');
     }
@@ -22,38 +22,13 @@ const DocumentUpload: React.FC = () => {
       setError('Please select a file');
       return;
     }
-
     setUploading(true);
     setError('');
-
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await axios.post('/api/v1/documents', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      // Extraction is now automatically triggered on the backend
-      // Navigate to dashboard - extraction will complete in background
+      await documentsService.uploadDocument(file);
       navigate('/dashboard');
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      let errorMessage = 'Upload failed';
-      
-      if (err.response?.data) {
-        // Try different error formats
-        errorMessage = err.response.data.detail || 
-                      err.response.data.message || 
-                      err.response.data.error?.message ||
-                      JSON.stringify(err.response.data);
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+    } catch (err) {
+      setError((err as Error).message || 'Upload failed');
     } finally {
       setUploading(false);
     }

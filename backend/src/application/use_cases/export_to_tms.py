@@ -32,8 +32,9 @@ class ExportToTMSUseCase:
         self.review_repository = review_repository
         self.export_repository = export_repository
         self.audit_trail_repository = audit_trail_repository
-        self.tms_api_url = tms_api_url or os.getenv("TMS_API_URL", "http://mock-tms:8080/api") // TODO: Change to the actual TMS API URL in production
-        self.tms_api_key = tms_api_key or os.getenv("TMS_API_KEY", "") // TODO: Change to the actual TMS API key in production
+        # TODO: Production TMS API URL and key will be used in production
+        self.tms_api_url = tms_api_url or os.getenv("TMS_API_URL", "http://mock-tms:8080/api")
+        self.tms_api_key = tms_api_key or os.getenv("TMS_API_KEY", "")
     
     def execute(self, document_id: UUID, export_data: ExportCreateDTO, exported_by: UUID) -> ExportDTO:
         """
@@ -100,17 +101,7 @@ class ExportToTMSUseCase:
         )
         self.audit_trail_repository.create(audit_trail)
         
-        # Convert to DTO
-        return ExportDTO(
-            id=saved_export.id,
-            document_id=saved_export.document_id,
-            exported_to=saved_export.exported_to,
-            export_payload=saved_export.export_payload,
-            export_status=saved_export.export_status,
-            exported_at=saved_export.exported_at,
-            retry_count=saved_export.retry_count,
-            error_message=saved_export.error_message,
-        )
+        return ExportDTO.from_entity(saved_export)
     
     def _format_export_payload(self, document, data: Dict[str, Any]) -> Dict[str, Any]:
         """Format data for TMS export"""

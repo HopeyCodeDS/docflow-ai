@@ -71,14 +71,5 @@ class ValidateDataUseCase:
         # Save validation result
         saved_result = self.validation_result_repository.create(validation_result)
         
-        # Convert to DTO
-        # validation_errors are already dicts, so use them directly
-        return ValidationResultDTO(
-            id=saved_result.id,
-            extraction_id=saved_result.extraction_id,
-            validation_rules=saved_result.validation_rules,
-            validation_status=saved_result.validation_status,
-            validation_errors=saved_result.validation_errors or [],
-            validated_at=saved_result.validated_at,
-        )
+        return ValidationResultDTO.from_entity(saved_result)
 

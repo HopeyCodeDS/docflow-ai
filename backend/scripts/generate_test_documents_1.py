@@ -73,4 +73,9 @@ test_data = {
     "weight": "1260 kg"
 }
 
-create_standard_cmr("synthetic_cmr_test.pdf", test_data)
+if __name__ == "__main__":
+    from pathlib import Path
+    out = Path(__file__).parent.parent / "fixtures" / "synthetic_cmr_test.pdf"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    create_standard_cmr(str(out), test_data)
+    print(f"Created {out}")

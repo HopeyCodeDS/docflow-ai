@@ -4,9 +4,7 @@ from fastapi.responses import JSONResponse
 import os
 
 from .routes import auth, documents, extractions, validations, reviews, exports
-from ..infrastructure.persistence.database import Database
 from ..infrastructure.monitoring.logging import get_logger
-from ..infrastructure.monitoring.metrics import MetricsCollector
 
 logger = get_logger("docflow.api")
 
@@ -25,10 +23,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize database
-database_url = os.getenv("DATABASE_URL", "postgresql://docflow:docflow@localhost:5432/docflow")
-db = Database(database_url)
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
