@@ -1,6 +1,5 @@
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import Dict, Any
 
 from ...domain.entities.document import DocumentStatus
 from ...domain.entities.extraction import Extraction, ExtractionMethod
@@ -14,6 +13,7 @@ from ...infrastructure.external.llm.base import LLMService
 from ...infrastructure.external.storage.base import StorageService
 from ...infrastructure.external.llm.base import LLMExtractionResult
 from ...application.dtos.extraction_dto import ExtractionDTO
+from ...application.extraction_schemas import get_extraction_schema
 
 
 class ExtractFieldsUseCase:
@@ -133,65 +133,11 @@ class ExtractFieldsUseCase:
             )
             self.audit_trail_repository.create(audit_trail)
             
-            # Convert to DTO
-            return ExtractionDTO(
-                id=saved_extraction.id,
-                document_id=saved_extraction.document_id,
-                extraction_method=saved_extraction.extraction_method,
-                raw_text=saved_extraction.raw_text,
-                structured_data=saved_extraction.structured_data,
-                confidence_scores=saved_extraction.confidence_scores,
-                extracted_at=saved_extraction.extracted_at,
-                extraction_metadata=saved_extraction.extraction_metadata,
-            )
+            return ExtractionDTO.from_entity(saved_extraction)
         
         except Exception as e:
             # Update status to FAILED
             document.update_status(DocumentStatus.FAILED)
             self.document_repository.update(document)
             raise
-    
-    def _get_extraction_schema(self, document_type: str) -> Dict[str, Any]:
-        """Get extraction schema for document type"""
-        schemas = {
-            "CMR": {
-                "type": "object",
-                "properties": {
-                    "shipper_name": {"type": "string"},
-                    "shipper_address": {"type": "string"},
-                    "consignee_name": {"type": "string"},
-                    "consignee_address": {"type": "string"},
-                    "date_of_consignment": {"type": "string"},
-                    "place_of_consignment": {"type": "string"},
-                    "reference_number": {"type": "string"},
-                    "goods_description": {"type": "string"},
-                    "quantity": {"type": "string"},
-                    "weight": {"type": "string"},
-                }
-            },
-            "INVOICE": {
-                "type": "object",
-                "properties": {
-                    "invoice_number": {"type": "string"},
-                    "invoice_date": {"type": "string"},
-                    "seller_name": {"type": "string"},
-                    "buyer_name": {"type": "string"},
-                    "total_amount": {"type": "string"},
-                    "currency": {"type": "string"},
-                    "tax_amount": {"type": "string"},
-                    "items": {"type": "array"},
-                }
-            },
-            "DELIVERY_NOTE": {
-                "type": "object",
-                "properties": {
-                    "delivery_note_number": {"type": "string"},
-                    "delivery_date": {"type": "string"},
-                    "recipient_name": {"type": "string"},
-                    "recipient_address": {"type": "string"},
-                    "items": {"type": "array"},
-                }
-            }
-        }
-        return schemas.get(document_type, {"type": "object", "properties": {}})
 

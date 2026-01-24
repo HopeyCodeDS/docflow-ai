@@ -75,16 +75,7 @@ class ReviewDocumentUseCase:
         )
         self.audit_trail_repository.create(audit_trail)
         
-        # Convert to DTO
-        return ReviewDTO(
-            id=saved_review.id,
-            document_id=saved_review.document_id,
-            reviewed_by=saved_review.reviewed_by,
-            corrections=saved_review.corrections,
-            review_status=saved_review.review_status,
-            review_notes=saved_review.review_notes,
-            reviewed_at=saved_review.reviewed_at,
-        )
+        return ReviewDTO.from_entity(saved_review)
     
     def approve(self, document_id: UUID, reviewed_by: UUID) -> ReviewDTO:
         """Approve review"""
@@ -101,13 +92,5 @@ class ReviewDocumentUseCase:
             document.update_status(DocumentStatus.REVIEWED)
             self.document_repository.update(document)
         
-        return ReviewDTO(
-            id=saved_review.id,
-            document_id=saved_review.document_id,
-            reviewed_by=saved_review.reviewed_by,
-            corrections=saved_review.corrections,
-            review_status=saved_review.review_status,
-            review_notes=saved_review.review_notes,
-            reviewed_at=saved_review.reviewed_at,
-        )
+        return ReviewDTO.from_entity(saved_review)
 
