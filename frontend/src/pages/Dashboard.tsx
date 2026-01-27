@@ -1,35 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import { useDocuments } from '../hooks/useDocuments';
+import { getStatusBadge } from '../constants';
+import client from '../api/client';
 import './Dashboard.css';
-
-interface Document {
-  id: string;
-  original_filename: string;
-  status: string;
-  document_type: string | null;
-  uploaded_at: string;
-  file_size: number;
-}
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { documents, loading, deleteDocument, refresh } = useDocuments({ limit: 50 });
   const [refreshing, setRefreshing] = useState(false);
   const [restartingDocumentId, setRestartingDocumentId] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
 
   const refreshDocuments = async () => {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      const response = await axios.get('/api/v1/documents?limit=50');
-      setDocuments(response.data.documents);
+      await refresh();
     } catch (error) {
       console.error('Failed to fetch documents', error);
     } finally {
@@ -37,53 +24,25 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchDocuments = async () => {
-    try {
-      const response = await axios.get('/api/v1/documents?limit=50');
-      setDocuments(response.data.documents);
-    } catch (error) {
-      console.error('Failed to fetch documents', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRestart = async (documentId: string) => {
     setRestartingDocumentId(documentId);
     try {
-      await axios.post(`/api/v1/documents/${documentId}/reprocess`);
+      await client.post(`/documents/${documentId}/reprocess`);
       await refreshDocuments();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || error.response?.data?.message || 'Failed to restart processing');
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : 'Failed to restart processing');
     } finally {
       setRestartingDocumentId(null);
     }
   };
 
   const handleDelete = async (documentId: string, filename: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
-      return;
-    }
-
+    if (!window.confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) return;
     try {
-      await axios.delete(`/api/v1/documents/${documentId}`);
-      refreshDocuments();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to delete document');
+      await deleteDocument(documentId);
+    } catch (e) {
+      alert((e as Error).message || 'Failed to delete document');
     }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const badges: { [key: string]: string } = {
-      UPLOADED: 'badge-info',
-      PROCESSING: 'badge-warning',
-      EXTRACTED: 'badge-success',
-      VALIDATED: 'badge-success',
-      REVIEWED: 'badge-success',
-      EXPORTED: 'badge-success',
-      FAILED: 'badge-danger',
-    };
-    return badges[status] || 'badge-secondary';
   };
 
   return (

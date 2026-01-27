@@ -1,79 +1,52 @@
 import React, { useCallback, Fragment, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useDocumentReview } from '../hooks/useDocumentReview';
+import { getDocument } from '../services/documents';
+import client from '../api/client';
+import { getConfidenceClass, RAW_TEXT_PREVIEW_LENGTH } from '../constants';
 import './DocumentReview.css';
-
-interface Extraction {
-  id: string;
-  document_id: string;
-  extraction_method: string;
-  raw_text?: string;
-  structured_data: { [key: string]: any };
-  confidence_scores: { [key: string]: number };
-  extracted_at: string;
-  extraction_metadata?: { [key: string]: any };
-}
-
-interface Validation {
-  validation_status: string;
-  validation_errors: Array<{ field: string; message: string; severity: string }>;
-}
 
 const DocumentReview: React.FC = () => {
   const { documentId } = useParams<{ documentId: string }>();
   const navigate = useNavigate();
+  const {
+    extraction,
+    validation,
+    corrections,
+    setCorrection,
+    save,
+    retryExtraction,
+    fetchData,
+    loading,
+    saving,
+  } = useDocumentReview(documentId);
   const [documentStatus, setDocumentStatus] = useState<string | null>(null);
-  const [extraction, setExtraction] = useState<Extraction | null>(null);
-  const [validation, setValidation] = useState<Validation | null>(null);
-  const [corrections, setCorrections] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [restartingProcessing, setRestartingProcessing] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
+  const refreshDocumentStatus = useCallback(async () => {
+    if (!documentId) return;
     try {
-      const docRes = await axios.get(`/api/v1/documents/${documentId}`).catch(() => null);
-      if (docRes) setDocumentStatus(docRes.data.status ?? null);
-
-      const extractionRes = await axios.get(`/api/v1/documents/${documentId}/extraction`).catch(() => null);
-
-      if (extractionRes) {
-        setExtraction(extractionRes.data);
-        setCorrections(extractionRes.data.structured_data || {});
-
-        const hasStructuredData =
-          extractionRes.data.structured_data &&
-          Object.keys(extractionRes.data.structured_data).length > 0;
-
-        if (hasStructuredData) {
-          try {
-            const validationRes = await axios.get(`/api/v1/documents/${documentId}/validation`);
-            if (validationRes) setValidation(validationRes.data);
-          } catch (error: any) {
-            console.warn('Validation fetch failed:', error.response?.data?.detail);
-          }
-        } else {
-          setValidation(null);
-        }
-      } else {
-        setExtraction(null);
-        setValidation(null);
-      }
-    } catch (error) {
-      console.error('Failed to fetch data', error);
-    } finally {
-      setLoading(false);
-      if (isRefresh) setRefreshing(false);
+      const d = await getDocument(documentId);
+      setDocumentStatus(d.status);
+    } catch {
+      // ignore
     }
   }, [documentId]);
 
-  const refreshData = useCallback(() => fetchData(true), [fetchData]);
+  const refreshData = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchData();
+      await refreshDocumentStatus();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchData, refreshDocumentStatus]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    refreshDocumentStatus();
+  }, [refreshDocumentStatus]);
 
   useEffect(() => {
     if (documentStatus !== 'PROCESSING') return;
@@ -82,40 +55,25 @@ const DocumentReview: React.FC = () => {
   }, [documentStatus, refreshData]);
 
   const handleRestartProcessing = useCallback(async () => {
+    if (!documentId) return;
     setRestartingProcessing(true);
     try {
-      await axios.post(`/api/v1/documents/${documentId}/reprocess`);
+      await client.post(`/documents/${documentId}/reprocess`);
       await refreshData();
-    } catch (e: any) {
-      alert(e.response?.data?.detail || e.response?.data?.message || 'Failed to restart processing');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to restart processing');
     } finally {
       setRestartingProcessing(false);
     }
   }, [documentId, refreshData]);
 
-  const handleFieldChange = (field: string, value: string) => {
-    setCorrections((prev) => ({ ...prev, [field]: value }));
-  };
-
   const handleSave = async () => {
-    setSaving(true);
     try {
-      await axios.post(`/api/v1/documents/${documentId}/review`, {
-        corrections,
-        review_notes: '',
-      });
+      await save();
       navigate('/dashboard');
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to save review');
-    } finally {
-      setSaving(false);
+    } catch (e) {
+      alert((e as Error).message || 'Failed to save review');
     }
-  };
-
-  const getConfidenceClass = (confidence: number) => {
-    if (confidence >= 0.7) return 'high';
-    if (confidence >= 0.4) return 'medium';
-    return 'low';
   };
 
   if (loading) {
@@ -128,20 +86,7 @@ const DocumentReview: React.FC = () => {
     );
   }
 
-  const triggerExtraction = async () => {
-    setLoading(true);
-    try {
-      await axios.post(`/api/v1/documents/${documentId}/reprocess`);
-      await refreshData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || error.response?.data?.message || 'Failed to trigger extraction');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const isProcessing = documentStatus === 'PROCESSING';
-
   const pipelineStages: readonly string[] = ['UPLOADED', 'PROCESSING', 'EXTRACTED', 'VALIDATED', 'REVIEWED', 'EXPORTED', 'FAILED'];
   const currentStageIndex = documentStatus ? pipelineStages.indexOf(documentStatus) : 0;
 
@@ -203,7 +148,7 @@ const DocumentReview: React.FC = () => {
           )}
           <p>Extraction not found. The document may still be processing.</p>
           <div style={{ marginTop: '20px' }}>
-            <button onClick={triggerExtraction} className="btn btn-primary" disabled={loading}>
+            <button onClick={retryExtraction} className="btn btn-primary" disabled={loading}>
               {loading ? 'Processing...' : 'Start Extraction'}
             </button>
             <button onClick={() => navigate('/dashboard')} className="btn btn-secondary" style={{ marginLeft: '10px' }}>
@@ -257,19 +202,15 @@ const DocumentReview: React.FC = () => {
                 <div style={{ marginTop: '15px', padding: '10px', background: '#fff3cd', borderRadius: '4px', fontSize: '12px', textAlign: 'left' }}>
                   <strong>Extraction Details:</strong>
                   <ul style={{ marginTop: '5px', paddingLeft: '20px', marginBottom: '0' }}>
-                    <li>OCR Provider: {extraction.extraction_metadata.ocr_provider || 'Unknown'}</li>
-                    <li>LLM Provider: {extraction.extraction_metadata.llm_provider || 'N/A'}</li>
-                    <li>LLM Model: {extraction.extraction_metadata.llm_model || 'N/A'}</li>
-                    {extraction.extraction_metadata.error && (
-                      <li style={{ color: '#dc3545', fontWeight: 'bold' }}>
-                        <strong>Error:</strong> {extraction.extraction_metadata.error}
-                      </li>
-                    )}
-                    {extraction.extraction_metadata.fallback && (
-                      <li style={{ color: '#856404' }}>
-                        <strong>Fallback:</strong> {extraction.extraction_metadata.fallback}
-                      </li>
-                    )}
+                    <li>{`OCR Provider: ${extraction.extraction_metadata.ocr_provider || 'Unknown'}`}</li>
+                    <li>{`LLM Provider: ${extraction.extraction_metadata.llm_provider || 'N/A'}`}</li>
+                    <li>{`LLM Model: ${extraction.extraction_metadata.llm_model || 'N/A'}`}</li>
+                    {extraction.extraction_metadata.error ? (
+                      <li style={{ color: '#dc3545', fontWeight: 'bold' }}>{`Error: ${extraction.extraction_metadata.error}`}</li>
+                    ) : null}
+                    {extraction.extraction_metadata.fallback ? (
+                      <li style={{ color: '#856404' }}>{`Fallback: ${extraction.extraction_metadata.fallback}`}</li>
+                    ) : null}
                   </ul>
                 </div>
               )}
@@ -277,7 +218,7 @@ const DocumentReview: React.FC = () => {
                 <div style={{ marginTop: '20px', padding: '15px', background: '#f5f5f5', borderRadius: '4px', textAlign: 'left' }}>
                   <strong>Extracted Text:</strong>
                   <pre style={{ marginTop: '10px', whiteSpace: 'pre-wrap', fontSize: '12px', maxHeight: '200px', overflow: 'auto' }}>
-                    {extraction.raw_text.substring(0, 500)}{extraction.raw_text.length > 500 ? '...' : ''}
+                    {extraction.raw_text.substring(0, RAW_TEXT_PREVIEW_LENGTH)}{extraction.raw_text.length > RAW_TEXT_PREVIEW_LENGTH ? '...' : ''}
                   </pre>
                 </div>
               )}
@@ -295,8 +236,8 @@ const DocumentReview: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    value={corrections[field] || value || ''}
-                    onChange={(e) => handleFieldChange(field, e.target.value)}
+                    value={corrections[field] || (value as string) || ''}
+                    onChange={(e) => setCorrection(field, e.target.value)}
                   />
                   <div className="confidence-bar">
                     <div

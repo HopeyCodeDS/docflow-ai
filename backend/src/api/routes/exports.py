@@ -1,30 +1,27 @@
 from fastapi import APIRouter, HTTPException, Depends
 from uuid import UUID
-import os
+from sqlalchemy.orm import Session
 
 from ...application.use_cases.export_to_tms import ExportToTMSUseCase
 from ...application.dtos.export_dto import ExportCreateDTO, ExportDTO
-from ...infrastructure.persistence.database import Database
 from ...infrastructure.persistence.repositories import (
     DocumentRepository, ExtractionRepository, ReviewRepository,
-    ExportRepository, AuditTrailRepository
+    ExportRepository, AuditTrailRepository,
 )
 from ...api.middleware.auth import get_current_user
+from ...api.dependencies import get_db_session
 
 router = APIRouter()
-
-database_url = os.getenv("DATABASE_URL", "postgresql://docflow:docflow@localhost:5432/docflow")
-db = Database(database_url)
 
 
 @router.post("/documents/{document_id}/export", response_model=ExportDTO)
 async def create_export(
     document_id: UUID,
     export_data: ExportCreateDTO,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    session: Session = Depends(get_db_session),
 ):
     """Export document to TMS"""
-    session = db.get_session()
     try:
         document_repo = DocumentRepository(session)
         extraction_repo = ExtractionRepository(session)
@@ -46,34 +43,19 @@ async def create_export(
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-    finally:
-        session.close()
 
 
 @router.get("/documents/{document_id}/export", response_model=ExportDTO)
 async def get_export(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    session: Session = Depends(get_db_session),
 ):
     """Get export status for document"""
-    session = db.get_session()
-    try:
-        export_repo = ExportRepository(session)
-        export = export_repo.get_by_document_id(document_id)
-        
-        if not export:
-            raise HTTPException(status_code=404, detail="Export not found")
-        
-        return ExportDTO(
-            id=export.id,
-            document_id=export.document_id,
-            exported_to=export.exported_to,
-            export_payload=export.export_payload,
-            export_status=export.export_status,
-            exported_at=export.exported_at,
-            retry_count=export.retry_count,
-            error_message=export.error_message,
-        )
-    finally:
-        session.close()
+    export_repo = ExportRepository(session)
+    export = export_repo.get_by_document_id(document_id)
+    
+    if not export:
+        raise HTTPException(status_code=404, detail="Export not found")
+    return ExportDTO.from_entity(export)
 

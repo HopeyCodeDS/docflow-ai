@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional
 from uuid import UUID
 from pydantic import BaseModel
 
-from ...domain.entities.review import ReviewStatus
+from ...domain.entities.review import Review, ReviewStatus
 
 
 class ReviewCreateDTO(BaseModel):
@@ -22,4 +22,16 @@ class ReviewDTO(BaseModel):
     
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_entity(cls, entity: Review) -> "ReviewDTO":
+        return cls(
+            id=entity.id,
+            document_id=entity.document_id,
+            reviewed_by=entity.reviewed_by,
+            corrections=entity.corrections,
+            review_status=entity.review_status,
+            review_notes=entity.review_notes,
+            reviewed_at=entity.reviewed_at,
+        )
 

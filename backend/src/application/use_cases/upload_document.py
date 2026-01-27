@@ -82,19 +82,5 @@ class UploadDocumentUseCase:
         )
         self.audit_trail_repository.create(audit_trail)
         
-        # Convert to DTO
-        return DocumentDTO(
-            id=saved_document.id,
-            original_filename=saved_document.original_filename,
-            file_type=saved_document.file_type,
-            file_size=saved_document.file_size,
-            storage_path=saved_document.storage_path,
-            uploaded_at=saved_document.uploaded_at,
-            uploaded_by=saved_document.uploaded_by,
-            status=saved_document.status,
-            document_type=saved_document.document_type,
-            version=saved_document.version,
-            created_at=saved_document.created_at,
-            updated_at=saved_document.updated_at,
-        )
+        return DocumentDTO.from_entity(saved_document)
 
