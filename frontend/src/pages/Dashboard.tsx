@@ -63,7 +63,11 @@ const Dashboard: React.FC = () => {
 
       <main className="container">
         <div className="dashboard-actions">
-          <Link to="/upload" className="btn btn-primary">
+          <Link
+            to="/upload"
+            className="btn btn-primary"
+            style={{ textDecoration: 'none' }}
+          >
             Upload Document
           </Link>
         </div>
@@ -131,6 +135,7 @@ const Dashboard: React.FC = () => {
                         <Link
                           to={`/review/${doc.id}`}
                           className="btn btn-secondary btn-sm"
+                          style={{ textDecoration: 'none' }}
                         >
                           Review
                         </Link>
