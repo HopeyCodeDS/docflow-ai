@@ -71,7 +71,7 @@ class ExtractFieldsUseCase:
             document.update_document_type(document_type)
             
             # Get extraction schema based on document type
-            schema = self._get_extraction_schema(document_type.value)
+            schema = get_extraction_schema(document_type.value)
             
             # Run LLM extraction
             try:
