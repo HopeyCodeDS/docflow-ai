@@ -1,12 +1,14 @@
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from uuid import UUID
 import os
+import threading
 
 from ...application.use_cases.upload_document import UploadDocumentUseCase
 from ...application.dtos.document_dto import DocumentDTO, DocumentListDTO
 from ...infrastructure.persistence.database import Database
-from ...infrastructure.persistence.repositories import DocumentRepository, AuditTrailRepository
+from ...infrastructure.persistence.repositories import DocumentRepository, AuditTrailRepository, ExtractionRepository
 from ...infrastructure.external.storage.factory import StorageServiceFactory
 from ...api.middleware.auth import get_current_user
 from ...infrastructure.monitoring.logging import get_logger
@@ -165,6 +167,90 @@ async def get_document(
             created_at=document.created_at,
             updated_at=document.updated_at,
         )
+    finally:
+        session.close()
+
+
+@router.post("/documents/{document_id}/reprocess")
+async def reprocess_document(
+    document_id: UUID,
+    current_user: dict = Depends(get_current_user)
+):
+    """Start reprocessing (re-run extraction) for a document. Returns 202 Accepted; extraction runs in background."""
+    logger = get_logger("docflow.api.documents")
+    session = db.get_session()
+    try:
+        document_repo = DocumentRepository(session)
+        document = document_repo.get_by_id(document_id)
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        document.update_status(DocumentStatus.PROCESSING)
+        document_repo.update(document)
+        session.commit()
+
+        doc_id = document_id
+
+        def trigger_extraction():
+            extraction_session = db.get_session()
+            try:
+                from ...application.use_cases.extract_fields import ExtractFieldsUseCase
+                from ...infrastructure.external.ocr.factory import OCRServiceFactory
+                from ...infrastructure.external.llm.factory import LLMServiceFactory
+                from ...domain.services.document_type_classifier import DocumentTypeClassifier
+
+                extraction_doc_repo = DocumentRepository(extraction_session)
+                extraction_repo = ExtractionRepository(extraction_session)
+                extraction_audit_repo = AuditTrailRepository(extraction_session)
+                extract_use_case = ExtractFieldsUseCase(
+                    document_repository=extraction_doc_repo,
+                    extraction_repository=extraction_repo,
+                    audit_trail_repository=extraction_audit_repo,
+                    ocr_service=OCRServiceFactory.create(),
+                    llm_service=LLMServiceFactory.create(),
+                    storage_service=storage_service,
+                    document_type_classifier=DocumentTypeClassifier(),
+                )
+                extract_use_case.execute(doc_id)
+                extraction_session.commit()
+                logger.info("Reprocess extraction completed", document_id=str(doc_id))
+            except Exception as e:
+                extraction_session.rollback()
+                import traceback
+                logger.error(
+                    "Reprocess extraction failed",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    document_id=str(doc_id),
+                    traceback=traceback.format_exc(),
+                )
+            finally:
+                extraction_session.close()
+
+        thread = threading.Thread(target=trigger_extraction, daemon=True)
+        thread.start()
+
+        dto = DocumentDTO(
+            id=document.id,
+            original_filename=document.original_filename,
+            file_type=document.file_type,
+            file_size=document.file_size,
+            storage_path=document.storage_path,
+            uploaded_at=document.uploaded_at,
+            uploaded_by=document.uploaded_by,
+            status=document.status,
+            document_type=document.document_type,
+            version=document.version,
+            created_at=document.created_at,
+            updated_at=document.updated_at,
+        )
+        return JSONResponse(status_code=202, content=dto.model_dump(mode="json"))
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error("Reprocess failed", error=str(e), error_type=type(e).__name__, document_id=str(document_id))
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
 
