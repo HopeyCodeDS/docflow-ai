@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -38,20 +39,52 @@ class DocumentRepository:
         model = self.session.query(DocumentModel).filter(DocumentModel.id == document_id).first()
         return self._to_entity(model) if model else None
 
-    def list(self, skip: int = 0, limit: int = 100, status: Optional[DocumentStatus] = None) -> List[Document]:
-        """List documents with pagination"""
+    def list(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        status: Optional[DocumentStatus] = None,
+        filename_search: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> List[Document]:
+        """List documents with pagination and optional filters."""
         query = self.session.query(DocumentModel)
-        if status:
-            query = query.filter(DocumentModel.status == status.value)
-        models = query.offset(skip).limit(limit).all()
+        query = self._apply_filters(query, status, filename_search, date_from, date_to)
+        models = query.order_by(DocumentModel.uploaded_at.desc()).offset(skip).limit(limit).all()
         return [self._to_entity(m) for m in models]
 
-    def count(self, status: Optional[DocumentStatus] = None) -> int:
-        """Count documents matching the given filters"""
+    def count(
+        self,
+        status: Optional[DocumentStatus] = None,
+        filename_search: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> int:
+        """Count documents matching the given filters."""
         query = self.session.query(func.count(DocumentModel.id))
+        query = self._apply_filters(query, status, filename_search, date_from, date_to)
+        return query.scalar() or 0
+
+    def _apply_filters(
+        self,
+        query,
+        status: Optional[DocumentStatus] = None,
+        filename_search: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ):
+        """Apply optional filters to a document query."""
         if status:
             query = query.filter(DocumentModel.status == status.value)
-        return query.scalar() or 0
+        if filename_search and filename_search.strip():
+            pattern = f"%{filename_search.strip()}%"
+            query = query.filter(DocumentModel.original_filename.ilike(pattern))
+        if date_from is not None:
+            query = query.filter(DocumentModel.uploaded_at >= date_from)
+        if date_to is not None:
+            query = query.filter(DocumentModel.uploaded_at <= date_to)
+        return query
 
     def update(self, document: Document) -> Document:
         """Update document"""

@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, BackgroundTasks, Query
 from fastapi.responses import JSONResponse
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -74,19 +75,49 @@ async def upload_document(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+def _parse_date(value: Optional[str]) -> Optional[datetime]:
+    """Parse YYYY-MM-DD string to datetime at start/end of day (caller chooses)."""
+    if not value or not value.strip():
+        return None
+    try:
+        return datetime.strptime(value.strip()[:10], "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
 @router.get("/documents", response_model=DocumentListDTO)
 async def list_documents(
     skip: int = 0,
-    limit: int = 100,
-    status: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    filename: Optional[str] = Query(None, description="Search by filename (substring, case-insensitive)"),
+    date_from: Optional[str] = Query(None, description="Filter uploaded from date (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="Filter uploaded to date (YYYY-MM-DD)"),
     current_user: dict = Depends(get_current_user),
     session: Session = Depends(get_db_session),
 ):
-    """List documents"""
+    """List documents with optional filters: status, filename search, date range."""
     document_repo = DocumentRepository(session)
     status_enum = DocumentStatus(status) if status else None
-    documents = document_repo.list(skip=skip, limit=limit, status=status_enum)
-    total = document_repo.count(status=status_enum)
+    date_from_dt = _parse_date(date_from)
+    date_to_dt = _parse_date(date_to)
+    if date_to_dt is not None:
+        # Include full day: end of day
+        date_to_dt = date_to_dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+    documents = document_repo.list(
+        skip=skip,
+        limit=limit,
+        status=status_enum,
+        filename_search=filename,
+        date_from=date_from_dt,
+        date_to=date_to_dt,
+    )
+    total = document_repo.count(
+        status=status_enum,
+        filename_search=filename,
+        date_from=date_from_dt,
+        date_to=date_to_dt,
+    )
     
     dtos = [
         DocumentDTO(
