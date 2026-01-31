@@ -22,7 +22,16 @@ export interface DocumentListResponse {
   page_size: number;
 }
 
-export function getDocuments(params?: { skip?: number; limit?: number; status?: string }): Promise<DocumentListResponse> {
+export interface DocumentListParams {
+  skip?: number;
+  limit?: number;
+  status?: string;
+  filename?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+}
+
+export function getDocuments(params?: DocumentListParams): Promise<DocumentListResponse> {
   return client.get<DocumentListResponse>('/documents', { params }).then((r) => r.data);
 }
 

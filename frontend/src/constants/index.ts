@@ -3,6 +3,17 @@
 export const RAW_TEXT_PREVIEW_LENGTH = 500;
 export const EXTRACTION_REFRESH_DELAY_MS = 2000;
 
+/** All document statuses for filter dropdown (order matches typical workflow). */
+export const DOCUMENT_STATUSES = [
+  'UPLOADED',
+  'PROCESSING',
+  'EXTRACTED',
+  'VALIDATED',
+  'REVIEWED',
+  'EXPORTED',
+  'FAILED',
+] as const;
+
 export const DOCUMENT_STATUS_BADGES: Record<string, string> = {
   UPLOADED: 'badge-info',
   PROCESSING: 'badge-warning',
