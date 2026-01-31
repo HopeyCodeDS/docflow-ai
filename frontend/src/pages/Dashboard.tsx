@@ -1,16 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useDocuments } from '../hooks/useDocuments';
-import { getStatusBadge } from '../constants';
+import { useDocuments, type DocumentFilters } from '../hooks/useDocuments';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { getStatusBadge, DOCUMENT_STATUSES } from '../constants';
 import client from '../api/client';
 import './Dashboard.css';
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { documents, loading, deleteDocument, refresh } = useDocuments({ limit: 50 });
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [searchInput, setSearchInput] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const debouncedSearch = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS);
+
+  const filters: DocumentFilters = useMemo(
+    () => ({
+      ...(statusFilter && { status: statusFilter }),
+      ...(debouncedSearch && { filename: debouncedSearch }),
+      ...(dateFrom && { date_from: dateFrom }),
+      ...(dateTo && { date_to: dateTo }),
+    }),
+    [statusFilter, debouncedSearch, dateFrom, dateTo]
+  );
+
+  const hasActiveFilters = Boolean(statusFilter || searchInput.trim() || dateFrom || dateTo);
+
+  const { documents, total, loading, deleteDocument, refresh } = useDocuments({
+    limit: 50,
+    filters: hasActiveFilters ? filters : undefined,
+  });
+
   const [refreshing, setRefreshing] = useState(false);
   const [restartingDocumentId, setRestartingDocumentId] = useState<string | null>(null);
+
+  const clearFilters = () => {
+    setStatusFilter('');
+    setSearchInput('');
+    setDateFrom('');
+    setDateTo('');
+  };
 
   const refreshDocuments = async () => {
     if (refreshing) return;
@@ -99,21 +131,103 @@ const Dashboard: React.FC = () => {
               </svg>
             </button>
           </div>
+
+          <div className="dashboard-filters" role="search" aria-label="Filter documents">
+            <div className="dashboard-filters-row">
+              <label className="filter-label" htmlFor="filter-status">
+                Status
+              </label>
+              <select
+                id="filter-status"
+                className="filter-select"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                aria-label="Filter by status"
+              >
+                <option value="">All statuses</option>
+                {DOCUMENT_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+
+              <label className="filter-label" htmlFor="filter-filename">
+                Filename
+              </label>
+              <input
+                id="filter-filename"
+                type="search"
+                className="filter-input"
+                placeholder="Search by filename…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                aria-label="Search by filename"
+                autoComplete="off"
+              />
+
+              <label className="filter-label" htmlFor="filter-date-from">
+                From
+              </label>
+              <input
+                id="filter-date-from"
+                type="date"
+                className="filter-input filter-date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                aria-label="Uploaded from date"
+              />
+
+              <label className="filter-label" htmlFor="filter-date-to">
+                To
+              </label>
+              <input
+                id="filter-date-to"
+                type="date"
+                className="filter-input filter-date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                aria-label="Uploaded to date"
+              />
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-clear-filters"
+                  onClick={clearFilters}
+                  aria-label="Clear all filters"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          </div>
+
           {loading ? (
             <p>Loading...</p>
           ) : documents.length === 0 ? (
-            <p>No documents found. Upload your first document to get started.</p>
+            <p>
+              {hasActiveFilters
+                ? 'No documents match the current filters. Try adjusting or clear filters.'
+                : 'No documents found. Upload your first document to get started.'}
+            </p>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Filename</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Uploaded</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+            <>
+              {hasActiveFilters && (
+                <p className="dashboard-results-summary" aria-live="polite">
+                  Showing {documents.length} of {total} document{total !== 1 ? 's' : ''}
+                </p>
+              )}
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
               <tbody>
                 {documents.map((doc) => (
                   <tr key={doc.id}>
@@ -160,7 +274,8 @@ const Dashboard: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </>
           )}
         </div>
       </main>
