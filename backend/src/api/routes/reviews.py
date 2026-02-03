@@ -8,6 +8,7 @@ from ...infrastructure.persistence.repositories import (
     DocumentRepository, ReviewRepository, AuditTrailRepository,
 )
 from ...api.middleware.auth import get_current_user
+from ...infrastructure.auth.rbac import get_permission_checker, Permission
 from ...api.dependencies import get_db_session
 
 router = APIRouter()
@@ -16,7 +17,7 @@ router = APIRouter()
 @router.get("/documents/{document_id}/review", response_model=ReviewDTO)
 async def get_review(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Get review for document"""
@@ -32,7 +33,7 @@ async def get_review(
 async def create_review(
     document_id: UUID,
     review_data: ReviewCreateDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.REVIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Create or update review"""
@@ -59,7 +60,7 @@ async def create_review(
 async def update_review(
     document_id: UUID,
     review_data: ReviewCreateDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.REVIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Update review"""

@@ -9,6 +9,7 @@ from ...infrastructure.persistence.repositories import (
     ExportRepository, AuditTrailRepository,
 )
 from ...api.middleware.auth import get_current_user
+from ...infrastructure.auth.rbac import get_permission_checker, Permission
 from ...api.dependencies import get_db_session
 
 router = APIRouter()
@@ -18,7 +19,7 @@ router = APIRouter()
 async def create_export(
     document_id: UUID,
     export_data: ExportCreateDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.EXPORT)),
     session: Session = Depends(get_db_session),
 ):
     """Export document to TMS"""
@@ -48,7 +49,7 @@ async def create_export(
 @router.get("/documents/{document_id}/export", response_model=ExportDTO)
 async def get_export(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Get export status for document"""

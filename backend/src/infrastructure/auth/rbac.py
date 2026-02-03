@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 from functools import wraps
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from uuid import UUID
 
 
@@ -21,16 +21,61 @@ ROLE_PERMISSIONS = {
 }
 
 
+# Permission constants for type safety
+class Permission:
+    VIEW = "view"
+    UPLOAD = "upload"
+    REVIEW = "review"
+    EXPORT = "export"
+    ADMIN = "admin"
+
+
 def has_permission(user_role: str, required_permission: str) -> bool:
     """Check if user role has required permission"""
-    role = Role(user_role)
+    try:
+        role = Role(user_role)
+    except ValueError:
+        return False
     permissions = ROLE_PERMISSIONS.get(role, [])
-    
+
     # Admin has all permissions
     if "*" in permissions:
         return True
-    
+
     return required_permission in permissions
+
+
+def get_permission_checker(permission: str):
+    """
+    FastAPI dependency factory for permission checking.
+
+    Usage:
+        @router.post("/documents")
+        async def upload_document(
+            current_user: dict = Depends(get_permission_checker("upload")),
+        ):
+    """
+    async def permission_checker(
+        # Import here to avoid circular dependency
+        credentials = Depends(lambda: None)  # Placeholder, will be replaced
+    ):
+        # Lazy import to avoid circular dependency
+        from ...api.middleware.auth import get_current_user
+        raise NotImplementedError("Use require_permission instead")
+
+    # Return a proper dependency
+    from ...api.middleware.auth import get_current_user
+
+    async def _check_permission(current_user: dict = Depends(get_current_user)) -> dict:
+        user_role = current_user.get("role", "viewer")
+        if not has_permission(user_role, permission):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission '{permission}' required. Your role: '{user_role}'"
+            )
+        return current_user
+
+    return _check_permission
 
 
 def require_permission(permission: str):

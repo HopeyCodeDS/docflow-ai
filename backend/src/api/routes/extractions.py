@@ -8,6 +8,7 @@ from ...infrastructure.persistence.repositories import (
     DocumentRepository, ExtractionRepository, AuditTrailRepository,
 )
 from ...api.middleware.auth import get_current_user
+from ...infrastructure.auth.rbac import get_permission_checker, Permission
 from ...api.dependencies import (
     get_db_session,
     get_storage_service,
@@ -22,7 +23,7 @@ router = APIRouter()
 @router.get("/documents/{document_id}/extraction", response_model=ExtractionDTO)
 async def get_extraction(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Get extraction result for document"""
@@ -37,7 +38,7 @@ async def get_extraction(
 @router.post("/documents/{document_id}/extraction/retry")
 async def retry_extraction(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.UPLOAD)),
     session: Session = Depends(get_db_session),
     storage_service=Depends(get_storage_service),
     ocr_service=Depends(get_ocr_service),

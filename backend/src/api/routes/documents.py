@@ -13,6 +13,7 @@ from ...application.dtos.document_dto import DocumentDTO, DocumentListDTO
 from ...infrastructure.persistence.repositories import DocumentRepository, AuditTrailRepository, ExtractionRepository
 from ...infrastructure.external.storage.base import StorageService
 from ...api.middleware.auth import get_current_user
+from ...infrastructure.auth.rbac import get_permission_checker, Permission
 from ...api.dependencies import (
     get_db_session,
     get_storage_service,
@@ -31,7 +32,7 @@ router = APIRouter()
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.UPLOAD)),
     session: Session = Depends(get_db_session),
     storage_service: StorageService = Depends(get_storage_service),
     ocr_service=Depends(get_ocr_service),
@@ -93,7 +94,7 @@ async def list_documents(
     filename: Optional[str] = Query(None, description="Search by filename (substring, case-insensitive)"),
     date_from: Optional[str] = Query(None, description="Filter uploaded from date (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="Filter uploaded to date (YYYY-MM-DD)"),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
 ):
     """List documents with optional filters: status, filename search, date range."""
@@ -144,7 +145,7 @@ async def list_documents(
 @router.get("/documents/{document_id}", response_model=DocumentDTO)
 async def get_document(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
 ):
     """Get document by ID"""
@@ -158,7 +159,7 @@ async def get_document(
 @router.post("/documents/{document_id}/reprocess")
 async def reprocess_document(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.UPLOAD)),
     storage_service: StorageService = Depends(get_storage_service),
 ):
     """Start reprocessing (re-run extraction) for a document. Returns 202 Accepted; extraction runs in background."""
@@ -244,7 +245,7 @@ async def reprocess_document(
 @router.get("/documents/{document_id}/file")
 async def download_document(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.VIEW)),
     session: Session = Depends(get_db_session),
     storage_service: StorageService = Depends(get_storage_service),
 ):
@@ -268,7 +269,7 @@ async def download_document(
 @router.delete("/documents/{document_id}")
 async def delete_document(
     document_id: UUID,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_permission_checker(Permission.ADMIN)),
     session: Session = Depends(get_db_session),
     storage_service: StorageService = Depends(get_storage_service),
 ):
