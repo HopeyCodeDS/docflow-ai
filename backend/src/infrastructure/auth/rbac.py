@@ -3,6 +3,7 @@ from typing import List
 from functools import wraps
 from fastapi import HTTPException, status, Depends
 from uuid import UUID
+from ...api.middleware.auth import get_current_user
 
 
 class Role(str, Enum):
@@ -56,15 +57,9 @@ def get_permission_checker(permission: str):
         ):
     """
     async def permission_checker(
-        # Import here to avoid circular dependency
         credentials = Depends(lambda: None)  # Placeholder, will be replaced
     ):
-        # Lazy import to avoid circular dependency
-        from ...api.middleware.auth import get_current_user
         raise NotImplementedError("Use require_permission instead")
-
-    # Return a proper dependency
-    from ...api.middleware.auth import get_current_user
 
     async def _check_permission(current_user: dict = Depends(get_current_user)) -> dict:
         user_role = current_user.get("role", "viewer")
