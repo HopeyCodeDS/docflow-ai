@@ -100,6 +100,9 @@ class ExtractFieldsUseCase:
                     }
                 )
             
+            # Delete any existing extraction for this document (for reprocessing)
+            self.extraction_repository.delete_by_document_id(document_id)
+
             # Create extraction entity
             extraction = Extraction(
                 id=uuid4(),
@@ -115,7 +118,7 @@ class ExtractFieldsUseCase:
                     **llm_result.metadata
                 }
             )
-            
+
             # Save extraction
             saved_extraction = self.extraction_repository.create(extraction)
             

@@ -30,11 +30,19 @@ class ExtractionRepository:
         return self._to_entity(model)
 
     def get_by_document_id(self, document_id: UUID) -> Optional[Extraction]:
-        """Get extraction by document ID"""
+        """Get the latest extraction by document ID"""
         model = self.session.query(ExtractionModel).filter(
             ExtractionModel.document_id == document_id
-        ).first()
+        ).order_by(ExtractionModel.extracted_at.desc()).first()
         return self._to_entity(model) if model else None
+
+    def delete_by_document_id(self, document_id: UUID) -> int:
+        """Delete all extractions for a document. Returns count of deleted records."""
+        deleted = self.session.query(ExtractionModel).filter(
+            ExtractionModel.document_id == document_id
+        ).delete()
+        self.session.flush()
+        return deleted
 
     def _to_entity(self, model: ExtractionModel) -> Extraction:
         """Convert model to entity"""
