@@ -63,21 +63,29 @@ class ExtractFieldsUseCase:
             # Run OCR
             ocr_result = self.ocr_service.extract_text_from_bytes(file_bytes, document.file_type)
             
-            # Classify document type
-            document_type = self.document_type_classifier.classify(
+            # Classify document type with confidence scoring
+            classification = self.document_type_classifier.classify_with_confidence(
                 ocr_result.text,
-                {"filename": document.original_filename}
+                {"filename": document.original_filename},
+                llm_service=self.llm_service,
             )
-            document.update_document_type(document_type)
-            
+            document.update_document_type(classification.document_type)
+
+            classification_metadata = {
+                "classification_confidence": classification.confidence,
+                "classification_method": classification.method,
+                "classification_runner_up": classification.runner_up_type.value if classification.runner_up_type else None,
+                "classification_runner_up_confidence": classification.runner_up_confidence,
+            }
+
             # Get extraction schema based on document type
-            schema = get_extraction_schema(document_type.value)
-            
+            schema = get_extraction_schema(classification.document_type.value)
+
             # Run LLM extraction
             try:
                 llm_result = self.llm_service.extract_fields(
                     ocr_result.text,
-                    document_type.value,
+                    classification.document_type.value,
                     schema
                 )
             except Exception as llm_error:
@@ -115,7 +123,8 @@ class ExtractFieldsUseCase:
                     "ocr_provider": type(self.ocr_service).__name__,
                     "llm_provider": llm_result.metadata.get("provider"),
                     "llm_model": llm_result.metadata.get("model"),
-                    **llm_result.metadata
+                    **llm_result.metadata,
+                    **classification_metadata,
                 }
             )
 
