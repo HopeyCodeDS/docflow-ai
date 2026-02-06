@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDocuments, type DocumentFilters } from '../hooks/useDocuments';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { getStatusBadge, DOCUMENT_STATUSES } from '../constants';
+import { getStatusBadge, DOCUMENT_STATUSES, getDocumentTypeLabel } from '../constants';
 import client from '../api/client';
 import './Dashboard.css';
 
@@ -232,7 +232,7 @@ const Dashboard: React.FC = () => {
                 {documents.map((doc) => (
                   <tr key={doc.id}>
                     <td>{doc.original_filename}</td>
-                    <td>{doc.document_type || 'Unknown'}</td>
+                    <td>{getDocumentTypeLabel(doc.document_type)}</td>
                     <td className="status-cell">
                       <span className={`badge ${getStatusBadge(doc.status)} ${doc.status === 'PROCESSING' ? 'badge-processing' : ''}`}>
                         {doc.status}

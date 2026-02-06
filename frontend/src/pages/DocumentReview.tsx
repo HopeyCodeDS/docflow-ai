@@ -211,6 +211,12 @@ const DocumentReview: React.FC = () => {
                     {extraction.extraction_metadata.fallback ? (
                       <li style={{ color: '#856404' }}>{`Fallback: ${extraction.extraction_metadata.fallback}`}</li>
                     ) : null}
+                    {extraction.extraction_metadata.classification_confidence != null && (
+                      <li>{`Classification Confidence: ${Math.round(extraction.extraction_metadata.classification_confidence * 100)}%`}</li>
+                    )}
+                    {extraction.extraction_metadata.classification_method && (
+                      <li>{`Classification Method: ${extraction.extraction_metadata.classification_method}`}</li>
+                    )}
                   </ul>
                 </div>
               )}
