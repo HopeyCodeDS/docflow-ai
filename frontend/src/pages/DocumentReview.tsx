@@ -200,23 +200,31 @@ const DocumentReview: React.FC = () => {
               </ul>
               {extraction.extraction_metadata && (
                 <div style={{ marginTop: '15px', padding: '10px', background: '#fff3cd', borderRadius: '4px', fontSize: '12px', textAlign: 'left' }}>
-                  <strong>Extraction Details:</strong>
+                  <div>
+                    <strong>Extraction Details:</strong>
+                  </div>
                   <ul style={{ marginTop: '5px', paddingLeft: '20px', marginBottom: '0' }}>
-                    <li>{`OCR Provider: ${extraction.extraction_metadata.ocr_provider || 'Unknown'}`}</li>
-                    <li>{`LLM Provider: ${extraction.extraction_metadata.llm_provider || 'N/A'}`}</li>
-                    <li>{`LLM Model: ${extraction.extraction_metadata.llm_model || 'N/A'}`}</li>
-                    {extraction.extraction_metadata.error ? (
-                      <li style={{ color: '#dc3545', fontWeight: 'bold' }}>{`Error: ${extraction.extraction_metadata.error}`}</li>
-                    ) : null}
-                    {extraction.extraction_metadata.fallback ? (
-                      <li style={{ color: '#856404' }}>{`Fallback: ${extraction.extraction_metadata.fallback}`}</li>
-                    ) : null}
-                    {extraction.extraction_metadata.classification_confidence != null && (
-                      <li>{`Classification Confidence: ${Math.round(extraction.extraction_metadata.classification_confidence * 100)}%`}</li>
-                    )}
-                    {extraction.extraction_metadata.classification_method && (
-                      <li>{`Classification Method: ${extraction.extraction_metadata.classification_method}`}</li>
-                    )}
+                    <>
+                      <li>{`OCR Provider: ${extraction.extraction_metadata.ocr_provider || 'Unknown'}`}</li>
+                      <li>{`LLM Provider: ${extraction.extraction_metadata.llm_provider || 'N/A'}`}</li>
+                      <li>{`LLM Model: ${extraction.extraction_metadata.llm_model || 'N/A'}`}</li>
+                      {extraction.extraction_metadata.error ? (
+                        <li style={{ color: '#dc3545', fontWeight: 'bold' }}>{`Error: ${extraction.extraction_metadata.error}`}</li>
+                      ) : null}
+                      {extraction.extraction_metadata.fallback ? (
+                        <li style={{ color: '#856404' }}>{`Fallback: ${extraction.extraction_metadata.fallback}`}</li>
+                      ) : null}
+                      {(() => {
+                        const confidence = extraction.extraction_metadata.classification_confidence;
+                        const confidenceNum = typeof confidence === 'number' ? confidence : (typeof confidence === 'string' ? parseFloat(confidence) : null);
+                        return confidenceNum != null && !isNaN(confidenceNum) ? (
+                          <li>{`Classification Confidence: ${Math.round(confidenceNum * 100)}%`}</li>
+                        ) : null;
+                      })()}
+                      {extraction.extraction_metadata.classification_method && (
+                        <li>{`Classification Method: ${extraction.extraction_metadata.classification_method}`}</li>
+                      )}
+                    </>
                   </ul>
                 </div>
               )}
