@@ -82,7 +82,7 @@ const Dashboard: React.FC = () => {
       <header className="dashboard-header">
         <div className="container">
           <div className="header-content">
-            <h1>DocFlow AI</h1>
+            <h1>Sortex.AI</h1>
             <div className="header-actions">
               <span className="user-info">{user?.email}</span>
               <button onClick={logout} className="btn btn-secondary">

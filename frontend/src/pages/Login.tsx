@@ -35,7 +35,7 @@ const Login: React.FC = () => {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>DocFlow AI</h1>
+        <h1>Sortex.AI</h1>
         <h2>Login</h2>
         {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
@@ -62,7 +62,7 @@ const Login: React.FC = () => {
           </button>
         </form>
         <p className="login-hint">
-          Default: admin@docflow.ai / admin123
+          Default: admin@sortex.ai / admin123
         </p>
       </div>
     </div>
