@@ -32,7 +32,7 @@ class LLMServiceFactory:
             # If URL points to 'ollama' service (Docker service name), use host.docker.internal instead
             if "ollama:11434" in base_url:
                 base_url = base_url.replace("ollama:11434", "host.docker.internal:11434")
-            model = os.getenv("OLLAMA_MODEL", "llama3.1")
+            model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
             return OllamaService(base_url=base_url, model=model)
         else:
             raise ValueError(f"Unknown LLM provider: {provider}")

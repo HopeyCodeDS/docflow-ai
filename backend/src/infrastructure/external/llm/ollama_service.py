@@ -1,21 +1,42 @@
 import json
+import logging
 from typing import Dict, Any
 import httpx
 
 from .base import LLMService, LLMExtractionResult
 
+logger = logging.getLogger(__name__)
+
 
 class OllamaService(LLMService):
     """Ollama LLM implementation"""
-    
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "llama3.1"):
+
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "qwen2.5:3b"):
         self.base_url = base_url
         self.model = model
-    
+        self._warm = False
+
+    def _ensure_model_loaded(self) -> None:
+        """Pre-load the model into Ollama memory on first use."""
+        if self._warm:
+            return
+        try:
+            with httpx.Client(timeout=300.0) as client:
+                resp = client.post(
+                    f"{self.base_url}/api/generate",
+                    json={"model": self.model, "prompt": "hi", "stream": False, "keep_alive": "30m"},
+                )
+                resp.raise_for_status()
+                self._warm = True
+                logger.info("Ollama model '%s' pre-loaded successfully", self.model)
+        except Exception as e:
+            logger.warning("Failed to pre-load Ollama model '%s': %s", self.model, e)
+
     def extract_fields(self, text: str, document_type: str, schema: Dict[str, Any]) -> LLMExtractionResult:
         """Extract structured fields using Ollama"""
+        self._ensure_model_loaded()
         prompt = self._build_prompt(text, document_type, schema)
-        
+
         try:
             with httpx.Client(timeout=180.0) as client:
                 response = client.post(
@@ -24,7 +45,8 @@ class OllamaService(LLMService):
                         "model": self.model,
                         "prompt": prompt,
                         "stream": False,
-                        "format": "json"
+                        "format": "json",
+                        "keep_alive": "30m"
                     }
                 )
                 response.raise_for_status()
