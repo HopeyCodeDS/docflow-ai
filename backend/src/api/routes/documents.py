@@ -40,7 +40,7 @@ async def upload_document(
     document_type_classifier=Depends(get_document_type_classifier),
 ):
     """Upload a document"""
-    logger = get_logger("docflow.api.documents")
+    logger = get_logger("sortex.api.documents")
 
     try:
         logger.info("Document upload started", filename=file.filename, user_id=str(current_user["id"]))
@@ -163,7 +163,7 @@ async def reprocess_document(
     storage_service: StorageService = Depends(get_storage_service),
 ):
     """Start reprocessing (re-run extraction) for a document. Returns 202 Accepted; extraction runs in background."""
-    logger = get_logger("docflow.api.documents")
+    logger = get_logger("sortex.api.documents")
     db = get_database()
     session = db.get_session()
     try:
@@ -274,7 +274,7 @@ async def delete_document(
     storage_service: StorageService = Depends(get_storage_service),
 ):
     """Delete document"""
-    logger = get_logger("docflow.api.documents")
+    logger = get_logger("sortex.api.documents")
     
     try:
         document_repo = DocumentRepository(session)

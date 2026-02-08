@@ -6,10 +6,10 @@ import os
 from .routes import auth, documents, extractions, validations, reviews, exports
 from ..infrastructure.monitoring.logging import get_logger
 
-logger = get_logger("docflow.api")
+logger = get_logger("sortex.api")
 
 app = FastAPI(
-    title="DocFlow AI API",
+    title="Sortex AI API",
     description="Intelligent Transport Document Processing Platform",
     version="1.0.0"
 )
@@ -35,7 +35,7 @@ app.include_router(exports.router, prefix="/api/v1", tags=["exports"])
 
 @app.get("/")
 async def root():
-    return {"message": "DocFlow AI API", "version": "1.0.0"}
+    return {"message": "Sortex AI API", "version": "1.0.0"}
 
 
 @app.get("/health")

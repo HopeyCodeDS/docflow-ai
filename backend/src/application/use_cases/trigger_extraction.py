@@ -15,7 +15,7 @@ from ...domain.services.document_type_classifier import DocumentTypeClassifier
 from .extract_fields import ExtractFieldsUseCase
 from ...infrastructure.monitoring.logging import get_logger
 
-logger = get_logger("docflow.application.trigger_extraction")
+logger = get_logger("sortex.application.trigger_extraction")
 
 
 class TriggerExtractionUseCase:

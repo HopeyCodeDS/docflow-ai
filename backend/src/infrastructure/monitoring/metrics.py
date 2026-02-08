@@ -5,36 +5,36 @@ import time
 
 # Metrics
 document_uploads_total = Counter(
-    'docflow_document_uploads_total',
+    'sortex_document_uploads_total',
     'Total number of document uploads'
 )
 
 document_extractions_total = Counter(
-    'docflow_document_extractions_total',
+    'sortex_document_extractions_total',
     'Total number of document extractions',
     ['status']  # success, failure
 )
 
 extraction_duration_seconds = Histogram(
-    'docflow_extraction_duration_seconds',
+    'sortex_extraction_duration_seconds',
     'Time spent on document extraction',
     buckets=[1, 5, 10, 30, 60, 120]
 )
 
 validation_results_total = Counter(
-    'docflow_validation_results_total',
+    'sortex_validation_results_total',
     'Total number of validation results',
     ['status']  # passed, failed, warning
 )
 
 export_attempts_total = Counter(
-    'docflow_export_attempts_total',
+    'sortex_export_attempts_total',
     'Total number of export attempts',
     ['status']  # success, failure
 )
 
 queue_depth = Gauge(
-    'docflow_queue_depth',
+    'sortex_queue_depth',
     'Current queue depth',
     ['queue_name']
 )

@@ -22,7 +22,7 @@ async def get_validation(
 ):
     """Get validation result for document"""
     from ...infrastructure.monitoring.logging import get_logger
-    logger = get_logger("docflow.api.validations")
+    logger = get_logger("sortex.api.validations")
     
     try:
         document_repo = DocumentRepository(session)

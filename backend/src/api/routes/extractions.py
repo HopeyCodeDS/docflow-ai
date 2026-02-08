@@ -47,7 +47,7 @@ async def retry_extraction(
 ):
     """Retry extraction for document"""
     from ...infrastructure.monitoring.logging import get_logger
-    logger = get_logger("docflow.api.extractions")
+    logger = get_logger("sortex.api.extractions")
     
     try:
         logger.info("Extraction retry started", document_id=str(document_id))

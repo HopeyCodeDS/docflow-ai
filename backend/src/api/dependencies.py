@@ -14,7 +14,7 @@ from ..infrastructure.external.llm.base import LLMService
 from ..domain.services.document_type_classifier import DocumentTypeClassifier
 from ..domain.services.validation_engine import ValidationEngine
 
-_database = Database(os.getenv("DATABASE_URL", "postgresql://docflow:docflow@localhost:5432/docflow"))
+_database = Database(os.getenv("DATABASE_URL", "postgresql://sortex:sortex@localhost:5432/sortex"))
 
 _storage_service = StorageServiceFactory.create()
 _ocr_service = OCRServiceFactory.create()
