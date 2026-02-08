@@ -3,25 +3,25 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: docflow-postgres
+    container_name: sortex-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-docflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-docflow}
-      POSTGRES_DB: ${POSTGRES_DB:-docflow}
+      POSTGRES_USER: ${POSTGRES_USER:-sortex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sortex}
+      POSTGRES_DB: ${POSTGRES_DB:-sortex}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./backend/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-docflow}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sortex}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   minio:
     image: minio/minio:latest
-    container_name: docflow-minio
+    container_name: sortex-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -39,7 +39,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: docflow-redis
+    container_name: sortex-redis
     ports:
       - "6379:6379"
     volumes:
@@ -54,9 +54,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: docflow-backend
+    container_name: sortex-backend
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-docflow}:${POSTGRES_PASSWORD:-docflow}@postgres:5432/${POSTGRES_DB:-docflow}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-sortex}:${POSTGRES_PASSWORD:-sortex}@postgres:5432/${POSTGRES_DB:-sortex}
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -66,7 +66,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       DEFAULT_LLM_PROVIDER: ${DEFAULT_LLM_PROVIDER:-ollama}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-mistral}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:3b}
       DEFAULT_OCR_PROVIDER: ${DEFAULT_OCR_PROVIDER:-paddleocr}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     ports:
@@ -86,7 +86,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: docflow-frontend
+    container_name: sortex-frontend
     environment:
       REACT_APP_API_URL: http://localhost:8000
     ports:
