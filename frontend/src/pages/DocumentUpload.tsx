@@ -1,72 +1,73 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { ArrowLeft } from 'lucide-react';
 import * as documentsService from '../services/documents';
-import './DocumentUpload.css';
+import TopBar from '../components/layout/TopBar';
+import { Card } from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import DropZone from '../components/ui/DropZone';
 
 const DocumentUpload: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setFile(e.target.files[0]);
-      setError('');
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setError('Please select a file');
+      toast.error('Please select a file');
       return;
     }
     setUploading(true);
-    setError('');
     try {
       await documentsService.uploadDocument(file);
+      toast.success('Document uploaded successfully');
       navigate('/dashboard');
     } catch (err) {
-      setError((err as Error).message || 'Upload failed');
+      toast.error((err as Error).message || 'Upload failed');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="container">
-      <div className="card">
-        <h2>Upload Document</h2>
-        {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Select Document (PDF, PNG, JPG)</label>
-            <input
-              type="file"
+    <>
+      <TopBar
+        title="Upload Document"
+        subtitle="Upload a document for intelligent extraction and classification"
+        actions={
+          <Link to="/dashboard">
+            <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-4 w-4" />}>
+              Back to Dashboard
+            </Button>
+          </Link>
+        }
+      />
+
+      <div className="max-w-xl">
+        <Card>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <DropZone
               accept=".pdf,.png,.jpg,.jpeg"
-              onChange={handleFileChange}
-              required
+              file={file}
+              onFileSelect={setFile}
+              onFileClear={() => setFile(null)}
             />
-          </div>
-          {file && (
-            <div className="file-info">
-              <p>Selected: {file.name}</p>
-              <p>Size: {(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            </div>
-          )}
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={uploading || !file}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
-        </form>
+
+            <Button
+              type="submit"
+              loading={uploading}
+              disabled={!file}
+              className="w-full"
+            >
+              {uploading ? 'Uploading...' : 'Upload & Process'}
+            </Button>
+          </form>
+        </Card>
       </div>
-    </div>
+    </>
   );
 };
 
 export default DocumentUpload;
-
