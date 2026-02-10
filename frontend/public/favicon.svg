@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0062E6"/>
+      <stop offset="100%" stop-color="#33A1FD"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#33A1FD"/>
+      <stop offset="50%" stop-color="#7CC4FA"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="doc" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8F0FE"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#003580" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+
+  <!-- Subtle grid pattern for texture -->
+  <g opacity="0.06">
+    <line x1="128" y1="0" x2="128" y2="512" stroke="#fff" stroke-width="1"/>
+    <line x1="256" y1="0" x2="256" y2="512" stroke="#fff" stroke-width="1"/>
+    <line x1="384" y1="0" x2="384" y2="512" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="128" x2="512" y2="128" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="256" x2="512" y2="256" stroke="#fff" stroke-width="1"/>
+    <line x1="0" y1="384" x2="512" y2="384" stroke="#fff" stroke-width="1"/>
+  </g>
+
+  <!-- Document shape with folded corner -->
+  <g filter="url(#shadow)">
+    <path d="M148 88 L332 88 L380 136 L380 424 L148 424 Z" fill="url(#doc)" opacity="0.95"/>
+    <!-- Folded corner -->
+    <path d="M332 88 L332 136 L380 136 Z" fill="#C9DEFF" opacity="0.9"/>
+  </g>
+
+  <!-- Document text lines -->
+  <g opacity="0.2">
+    <rect x="184" y="168" width="160" height="10" rx="5" fill="#0062E6"/>
+    <rect x="184" y="196" width="130" height="10" rx="5" fill="#0062E6"/>
+    <rect x="184" y="224" width="150" height="10" rx="5" fill="#0062E6"/>
+    <rect x="184" y="252" width="110" height="10" rx="5" fill="#0062E6"/>
+  </g>
+
+  <!-- AI flow curves — three swooping lines representing data flow -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M100 340 C160 300, 240 380, 320 280 S420 200, 440 160"
+          stroke="url(#flow)" stroke-width="14" opacity="0.9"/>
+    <path d="M80 390 C150 350, 220 420, 310 330 S400 260, 430 220"
+          stroke="url(#flow)" stroke-width="10" opacity="0.6"/>
+    <path d="M120 430 C180 400, 260 440, 340 360 S410 300, 440 270"
+          stroke="url(#flow)" stroke-width="7" opacity="0.35"/>
+  </g>
+
+  <!-- AI sparkle nodes on the flow -->
+  <circle cx="320" cy="280" r="8" fill="#FFFFFF" opacity="0.95"/>
+  <circle cx="220" cy="365" r="5" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="430" cy="175" r="6" fill="#FFFFFF" opacity="0.85"/>
+
+  <!-- Small diamond sparkle accent -->
+  <g transform="translate(400, 120)" fill="#FFFFFF" opacity="0.8">
+    <path d="M0 -10 L4 0 L0 10 L-4 0 Z"/>
+  </g>
+  <g transform="translate(130, 310)" fill="#FFFFFF" opacity="0.5">
+    <path d="M0 -7 L3 0 L0 7 L-3 0 Z"/>
+  </g>
+</svg>
