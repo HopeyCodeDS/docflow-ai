@@ -22,3 +22,11 @@ export function getReview(documentId: string): Promise<Review> {
 export function createReview(documentId: string, data: ReviewCreate): Promise<Review> {
   return client.post<Review>(`/documents/${documentId}/review`, data).then((r) => r.data);
 }
+
+export function approveReview(documentId: string): Promise<Review> {
+  return client.post<Review>(`/documents/${documentId}/review/approve`).then((r) => r.data);
+}
+
+export function rejectReview(documentId: string): Promise<Review> {
+  return client.post<Review>(`/documents/${documentId}/review/reject`).then((r) => r.data);
+}
