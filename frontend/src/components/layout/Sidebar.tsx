@@ -15,12 +15,12 @@ const Sidebar: React.FC = () => {
   return (
     <aside className="fixed inset-y-0 left-0 w-60 bg-sidebar-bg flex flex-col z-40">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
+      <NavLink to="/dashboard" className="flex items-center gap-2.5 px-5 h-16 border-b border-sidebar-border">
         <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
           <FileSearch className="h-4.5 w-4.5 text-white" />
         </div>
-        <span className="text-lg font-bold text-white tracking-tight">Sortex.AI</span>
-      </div>
+        <span className="text-lg font-bold text-white tracking-tight">Sortex</span>
+      </NavLink>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
