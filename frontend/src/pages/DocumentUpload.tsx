@@ -35,7 +35,7 @@ const DocumentUpload: React.FC = () => {
     <>
       <TopBar
         title="Upload Document"
-        subtitle="Upload a document for intelligent extraction and classification"
+        subtitle="Upload a transport document for intelligent extraction and classification"
         actions={
           <Link to="/dashboard">
             <Button variant="ghost" size="sm" icon={<ArrowLeft className="h-4 w-4" />}>
