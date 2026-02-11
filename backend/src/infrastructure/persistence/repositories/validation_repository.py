@@ -32,11 +32,18 @@ class ValidationResultRepository:
         return self._to_entity(model)
 
     def get_by_extraction_id(self, extraction_id: UUID) -> Optional[ValidationResult]:
-        """Get validation result by extraction ID"""
+        """Get validation result by extraction ID (latest first)"""
         model = self.session.query(ValidationResultModel).filter(
             ValidationResultModel.extraction_id == extraction_id
-        ).first()
+        ).order_by(ValidationResultModel.validated_at.desc()).first()
         return self._to_entity(model) if model else None
+
+    def delete_by_extraction_id(self, extraction_id: UUID) -> None:
+        """Delete all validation results for an extraction (dedup before create)"""
+        self.session.query(ValidationResultModel).filter(
+            ValidationResultModel.extraction_id == extraction_id
+        ).delete()
+        self.session.flush()
 
     def _to_entity(self, model: ValidationResultModel) -> ValidationResult:
         """Convert model to entity"""

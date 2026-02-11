@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 
+from ...domain.entities.document import DocumentStatus
 from ...domain.entities.validation_result import ValidationResult, ValidationStatus
 from ...domain.services.validation_engine import ValidationEngine
 from ...infrastructure.persistence.repositories import (
@@ -59,17 +60,24 @@ class ValidateDataUseCase:
         # Create validation result
         # Convert ValidationError objects to dicts for the entity
         errors_dict = [{"field": e.field, "message": e.message, "severity": e.severity} for e in errors]
-        
+
+        # Delete any existing validation result for this extraction (dedup)
+        self.validation_result_repository.delete_by_extraction_id(extraction.id)
+
         validation_result = ValidationResult(
-            id=uuid4(),  # Generate proper UUID
+            id=uuid4(),
             extraction_id=extraction.id,
             validation_rules={"document_type": document.document_type.value if document.document_type else "UNKNOWN"},
             validation_status=status,
             validation_errors=errors_dict,
         )
-        
+
         # Save validation result
         saved_result = self.validation_result_repository.create(validation_result)
-        
+
+        # Update document status to VALIDATED
+        document.update_status(DocumentStatus.VALIDATED)
+        self.document_repository.update(document)
+
         return ValidationResultDTO.from_entity(saved_result)
 
