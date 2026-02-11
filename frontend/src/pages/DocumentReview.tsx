@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -11,6 +11,8 @@ import {
   XCircle,
   Info,
   Play,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import { useDocumentReview } from '../hooks/useDocumentReview';
 import { getDocument } from '../services/documents';
@@ -74,19 +76,22 @@ const MetadataGrid: React.FC<{ metadata: Record<string, unknown> }> = ({ metadat
 
 const DocumentReview: React.FC = () => {
   const { documentId } = useParams<{ documentId: string }>();
-  const navigate = useNavigate();
+  const [documentStatus, setDocumentStatus] = useState<string | null>(null);
   const {
     extraction,
     validation,
+    review,
     corrections,
     setCorrection,
     save,
+    approve,
+    reject,
     retryExtraction,
     fetchData,
     loading,
     saving,
-  } = useDocumentReview(documentId);
-  const [documentStatus, setDocumentStatus] = useState<string | null>(null);
+    canSave,
+  } = useDocumentReview(documentId, documentStatus);
   const [documentFilename, setDocumentFilename] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [restartingProcessing, setRestartingProcessing] = useState(false);
@@ -140,15 +145,39 @@ const DocumentReview: React.FC = () => {
     try {
       await save();
       toast.success('Review saved successfully');
-      navigate('/dashboard');
+      await refreshDocumentStatus();
     } catch (e) {
       toast.error((e as Error).message || 'Failed to save review');
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      await approve();
+      toast.success('Review approved');
+      await refreshDocumentStatus();
+    } catch (e) {
+      toast.error((e as Error).message || 'Failed to approve review');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      await reject();
+      toast.success('Review rejected — corrections can be resubmitted');
+      await refreshDocumentStatus();
+    } catch (e) {
+      toast.error((e as Error).message || 'Failed to reject review');
     }
   };
 
   const isProcessing = documentStatus === 'PROCESSING';
   const VALIDATED_OR_BEYOND = new Set(['VALIDATED', 'REVIEWED', 'EXPORTED']);
   const hasReachedValidation = documentStatus ? VALIDATED_OR_BEYOND.has(documentStatus) : false;
+  const validationFailed = validation?.validation_status === 'FAILED';
+  const isApproved = review?.review_status === 'APPROVED';
+  const isRejected = review?.review_status === 'REJECTED';
+  const isPending = review?.review_status === 'PENDING';
 
   if (loading) {
     return (
@@ -330,6 +359,21 @@ const DocumentReview: React.FC = () => {
             {documentFilename && (
               <h2 className="text-lg font-bold text-slate-900 text-center">{documentFilename}</h2>
             )}
+
+            {/* Review status banners */}
+            {isApproved && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm">
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                <span className="font-semibold">Review approved — document complete.</span>
+              </div>
+            )}
+            {isRejected && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+                <XCircle className="h-5 w-5 flex-shrink-0" />
+                <span className="font-semibold">Review rejected. Please make corrections and resubmit.</span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {Object.entries(extraction.structured_data || {}).map(([field, value]) => {
                 const confidence = extraction.confidence_scores[field] || 0;
@@ -342,7 +386,10 @@ const DocumentReview: React.FC = () => {
                       type="text"
                       value={corrections[field] || (value as string) || ''}
                       onChange={(e) => setCorrection(field, e.target.value)}
-                      className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                      disabled={isApproved}
+                      className={`block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 ${
+                        isApproved ? 'bg-slate-50 cursor-not-allowed' : 'bg-white'
+                      }`}
                     />
                     <ConfidenceBar confidence={confidence} />
                   </div>
@@ -357,6 +404,7 @@ const DocumentReview: React.FC = () => {
                 icon={<RotateCw className="h-4 w-4" />}
                 onClick={handleRestartProcessing}
                 loading={restartingProcessing}
+                disabled={isApproved}
               >
                 Restart Processing
               </Button>
@@ -364,15 +412,45 @@ const DocumentReview: React.FC = () => {
                 <Link to="/dashboard">
                   <Button variant="secondary">Cancel</Button>
                 </Link>
-                <Button
-                  icon={<Save className="h-4 w-4" />}
-                  onClick={handleSave}
-                  loading={saving}
-                >
-                  {saving ? 'Saving...' : 'Save Review'}
-                </Button>
+                {/* Save Review — hidden when approved, shown when no review or rejected */}
+                {!isApproved && (!review || isRejected) && (
+                  <Button
+                    icon={<Save className="h-4 w-4" />}
+                    onClick={handleSave}
+                    loading={saving}
+                    disabled={!canSave}
+                  >
+                    {saving ? 'Saving...' : 'Save Review'}
+                  </Button>
+                )}
               </div>
             </div>
+
+            {/* Validation failed hint */}
+            {validationFailed && !isApproved && (
+              <p className="text-sm text-red-600 text-right -mt-2">
+                Fix validation errors or reprocess the document before saving.
+              </p>
+            )}
+
+            {/* Approve / Reject — shown when review is pending */}
+            {isPending && (
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+                <Button
+                  variant="danger"
+                  icon={<ThumbsDown className="h-4 w-4" />}
+                  onClick={handleReject}
+                >
+                  Reject
+                </Button>
+                <Button
+                  icon={<ThumbsUp className="h-4 w-4" />}
+                  onClick={handleApprove}
+                >
+                  Approve
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Card>
