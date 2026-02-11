@@ -79,14 +79,15 @@ const DropZone: React.FC<DropZoneProps> = ({ accept, file, onFileSelect, onFileC
         </div>
         <div>
           <p className="text-sm font-medium text-slate-900">
-            Drop your file here, or <span className="text-brand-600">browse</span>
+            Drag & Drop your file here, or <span className="text-brand-600">browse</span>
           </p>
-          <p className="text-xs text-slate-500 mt-1">Supports PDF, PNG, JPG</p>
+          <p className="text-xs text-slate-500 mt-1">Supports PDF, PNG, JPG, JPEG</p>
         </div>
         <div className="flex gap-2 mt-1">
           <Badge variant="secondary">PDF</Badge>
           <Badge variant="secondary">PNG</Badge>
           <Badge variant="secondary">JPG</Badge>
+          <Badge variant="secondary">JPEG</Badge>
         </div>
       </div>
     </div>
