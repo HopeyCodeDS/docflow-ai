@@ -87,6 +87,7 @@ const DocumentReview: React.FC = () => {
     saving,
   } = useDocumentReview(documentId);
   const [documentStatus, setDocumentStatus] = useState<string | null>(null);
+  const [documentFilename, setDocumentFilename] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [restartingProcessing, setRestartingProcessing] = useState(false);
 
@@ -95,6 +96,7 @@ const DocumentReview: React.FC = () => {
     try {
       const d = await getDocument(documentId);
       setDocumentStatus(d.status);
+      setDocumentFilename(d.original_filename);
     } catch {
       // ignore
     }
@@ -145,6 +147,8 @@ const DocumentReview: React.FC = () => {
   };
 
   const isProcessing = documentStatus === 'PROCESSING';
+  const VALIDATED_OR_BEYOND = new Set(['VALIDATED', 'REVIEWED', 'EXPORTED']);
+  const hasReachedValidation = documentStatus ? VALIDATED_OR_BEYOND.has(documentStatus) : false;
 
   if (loading) {
     return (
@@ -210,8 +214,8 @@ const DocumentReview: React.FC = () => {
         </div>
       )}
 
-      {/* Validation status */}
-      {validation && (
+      {/* Validation status — only show when document has actually reached validation */}
+      {validation && hasReachedValidation && (
         <div
           className={`mb-4 flex items-start gap-3 px-4 py-3 rounded-xl border text-sm ${
             validation.validation_status === 'PASSED'
@@ -323,6 +327,9 @@ const DocumentReview: React.FC = () => {
         ) : (
           /* Structured data — editable fields */
           <div className="space-y-6">
+            {documentFilename && (
+              <h2 className="text-lg font-bold text-slate-900 text-center">{documentFilename}</h2>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {Object.entries(extraction.structured_data || {}).map(([field, value]) => {
                 const confidence = extraction.confidence_scores[field] || 0;
