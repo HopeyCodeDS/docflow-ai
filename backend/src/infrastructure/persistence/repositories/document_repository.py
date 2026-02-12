@@ -86,6 +86,32 @@ class DocumentRepository:
             query = query.filter(DocumentModel.uploaded_at <= date_to)
         return query
 
+    def count_by_filename(self, filename: str, uploaded_by: UUID) -> int:
+        """Count documents with a given original_filename for a specific user."""
+        return (
+            self.session.query(func.count(DocumentModel.id))
+            .filter(
+                DocumentModel.original_filename == filename,
+                DocumentModel.uploaded_by == uploaded_by,
+            )
+            .scalar() or 0
+        )
+
+    def count_by_filename_prefix(self, base_name: str, extension: str, uploaded_by: UUID) -> int:
+        """Count documents whose filename matches 'base_name%extension' for a user.
+
+        This catches both 'report.pdf' and 'report (2).pdf', 'report (3).pdf', etc.
+        """
+        pattern = f"{base_name}%{extension}"
+        return (
+            self.session.query(func.count(DocumentModel.id))
+            .filter(
+                DocumentModel.original_filename.like(pattern),
+                DocumentModel.uploaded_by == uploaded_by,
+            )
+            .scalar() or 0
+        )
+
     def update(self, document: Document) -> Document:
         """Update document"""
         model = self.session.query(DocumentModel).filter(DocumentModel.id == document.id).first()

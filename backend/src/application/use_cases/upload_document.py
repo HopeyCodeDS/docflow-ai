@@ -95,6 +95,38 @@ class UploadDocumentUseCase:
                 return True
         return False
 
+    def _deduplicate_filename(self, filename: str, uploaded_by: UUID) -> str:
+        """
+        If a document with the same filename already exists for this user,
+        append a suffix like (2), (3), etc.
+
+        Examples:
+            invoice.pdf  -> invoice.pdf        (first upload)
+            invoice.pdf  -> invoice (2).pdf    (second upload)
+            invoice.pdf  -> invoice (3).pdf    (third upload)
+        """
+        # Split into base name and extension
+        if '.' in filename:
+            dot_idx = filename.rfind('.')
+            base_name = filename[:dot_idx]
+            extension = filename[dot_idx:]  # includes the dot, e.g. ".pdf"
+        else:
+            base_name = filename
+            extension = ""
+
+        # Strip any existing " (N)" suffix so re-uploads of deduped names stay clean
+        stripped = re.sub(r' \(\d+\)$', '', base_name)
+
+        # Count how many docs match this base name pattern for this user
+        existing_count = self.document_repository.count_by_filename_prefix(
+            stripped, extension, uploaded_by
+        )
+
+        if existing_count == 0:
+            return filename  # No conflict
+
+        return f"{stripped} ({existing_count + 1}){extension}"
+
     def execute(self, file: BinaryIO, filename: str, uploaded_by: UUID) -> DocumentDTO:
         """
         Upload a document.
@@ -126,7 +158,10 @@ class UploadDocumentUseCase:
         # Validate file content matches extension (magic bytes check)
         if not self._validate_file_content(file_bytes, file_ext):
             raise ValueError(f"File content does not match extension '{file_ext}'. The file may be corrupted or misnamed.")
-        
+
+        # Deduplicate filename — append (2), (3), etc. if name already exists for this user
+        filename = self._deduplicate_filename(filename, uploaded_by)
+
         # Generate storage path
         document_id = uuid4()
         storage_path = f"{document_id}/{filename}"
