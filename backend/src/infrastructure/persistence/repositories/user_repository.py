@@ -16,10 +16,23 @@ class UserRepository:
         model = self.session.query(UserModel).filter(UserModel.email == email).first()
         return self._to_entity(model) if model else None
 
+    def create(self, user: User) -> User:
+        """Persist a new user. Raises IntegrityError on duplicate email."""
+        model = UserModel(
+            id=user.id,
+            email=user.email,
+            password_hash=user.password_hash,
+            role=user.role,
+        )
+        self.session.add(model)
+        self.session.flush()
+        return self._to_entity(model)
+
     def _to_entity(self, model: UserModel) -> User:
         return User(
             id=model.id,
             email=model.email,
             password_hash=model.password_hash,
             role=model.role,
+            created_at=model.created_at,
         )
