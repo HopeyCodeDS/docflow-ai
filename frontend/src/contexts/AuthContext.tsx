@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -63,12 +64,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(u ?? { id: '', email: '', role: 'viewer' });
   };
 
+  const register = async (email: string, password: string) => {
+    const { access_token, refresh_token } = await authService.register(email, password);
+    setToken(access_token);
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('refresh_token', refresh_token);
+    const u = decodeUser(access_token);
+    setUser(u ?? { id: '', email: '', role: 'viewer' });
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         login,
+        register,
         logout,
         isAuthenticated: !!token && !!user,
       }}
