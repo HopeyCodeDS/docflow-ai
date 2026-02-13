@@ -67,3 +67,15 @@ async def rate_limit_refresh(request: Request) -> None:
     """
     client_ip = request.client.host if request.client else "unknown"
     await refresh_limiter.check(client_ip)
+
+
+register_limiter = RateLimiter(requests_per_minute=3)
+
+
+async def rate_limit_register(request: Request) -> None:
+    """
+    FastAPI dependency for rate limiting registration attempts.
+    Limits to 3 requests per minute per IP address.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    await register_limiter.check(client_ip)
