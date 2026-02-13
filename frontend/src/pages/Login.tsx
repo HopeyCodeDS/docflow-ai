@@ -3,12 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { FileSearch, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+const passwordRules = [
+  { test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+  { test: (p: string) => /[A-Z]/.test(p), label: 'One uppercase letter' },
+  { test: (p: string) => /[a-z]/.test(p), label: 'One lowercase letter' },
+  { test: (p: string) => /\d/.test(p), label: 'One digit' },
+];
+
 const Login: React.FC = () => {
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,20 +26,46 @@ const Login: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const switchMode = () => {
+    setMode(mode === 'login' ? 'register' : 'login');
+    setError('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    if (mode === 'register') {
+      const failed = passwordRules.find((r) => !r.test(password));
+      if (failed) {
+        setError(failed.label);
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
-      await login(email, password);
+      if (mode === 'login') {
+        await login(email, password);
+      } else {
+        await register(email, password);
+      }
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      const detail = err?.response?.data?.detail;
+      setError(detail || err.message || (mode === 'login' ? 'Login failed' : 'Registration failed'));
     } finally {
       setLoading(false);
     }
   };
+
+  const isRegister = mode === 'register';
 
   return (
     <div className="min-h-screen flex">
@@ -70,7 +105,7 @@ const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* Right panel — login form */}
+      {/* Right panel — form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
@@ -81,8 +116,12 @@ const Login: React.FC = () => {
             <span className="text-2xl font-bold text-slate-900 tracking-tight">Sortex.AI</span>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Welcome back</h1>
-          <p className="text-sm text-slate-500 mb-8">Sign in to your account to continue</p>
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">
+            {isRegister ? 'Create your account' : 'Welcome back'}
+          </h1>
+          <p className="text-sm text-slate-500 mb-8">
+            {isRegister ? 'Get started with Sortex.AI' : 'Sign in to your account to continue'}
+          </p>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
@@ -116,10 +155,42 @@ const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="Enter your password"
+                placeholder={isRegister ? 'Create a password' : 'Enter your password'}
                 className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
               />
+              {isRegister && password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {passwordRules.map((rule) => (
+                    <li
+                      key={rule.label}
+                      className={`text-xs flex items-center gap-1.5 ${
+                        rule.test(password) ? 'text-green-600' : 'text-slate-400'
+                      }`}
+                    >
+                      <span>{rule.test(password) ? '\u2713' : '\u2022'}</span>
+                      {rule.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+
+            {isRegister && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Confirm password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Confirm your password"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+              </div>
+            )}
 
             <button
               type="submit"
@@ -127,13 +198,35 @@ const Login: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading
+                ? isRegister ? 'Creating account...' : 'Signing in...'
+                : isRegister ? 'Create account' : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-slate-400">
-            Demo: admin@sortex.ai / admin123
+          <p className="mt-6 text-center text-sm text-slate-500">
+            {isRegister ? (
+              <>
+                Already have an account?{' '}
+                <button onClick={switchMode} className="font-medium text-brand-600 hover:text-brand-500">
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Don't have an account?{' '}
+                <button onClick={switchMode} className="font-medium text-brand-600 hover:text-brand-500">
+                  Create one
+                </button>
+              </>
+            )}
           </p>
+
+          {!isRegister && (
+            <p className="mt-3 text-center text-xs text-slate-400">
+              Demo: admin@sortex.ai / admin123
+            </p>
+          )}
         </div>
       </div>
     </div>
