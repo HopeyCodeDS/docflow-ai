@@ -123,6 +123,8 @@ class ExtractFieldsUseCase:
                     "ocr_provider": type(self.ocr_service).__name__,
                     "llm_provider": llm_result.metadata.get("provider"),
                     "llm_model": llm_result.metadata.get("model"),
+                    "ocr_layout": ocr_result.layout[:500],
+                    "layout_element_count": len(ocr_result.layout),
                     **llm_result.metadata,
                     **classification_metadata,
                 }
