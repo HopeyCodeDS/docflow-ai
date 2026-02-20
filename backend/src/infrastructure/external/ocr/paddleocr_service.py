@@ -71,7 +71,8 @@ class PaddleOCRService(OCRService):
                             continue
             
             all_text.append(" ".join(page_text))
-        
+            layout.extend(page_layout)
+
         full_text = "\n".join(all_text)
         return OCRResult(text=full_text, layout=layout)
     
