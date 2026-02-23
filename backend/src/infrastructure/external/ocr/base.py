@@ -4,10 +4,12 @@ from typing import Dict, List, Tuple, Any
 
 class OCRResult:
     """OCR extraction result"""
-    
-    def __init__(self, text: str, layout: List[Dict[str, Any]] = None):
+
+    def __init__(self, text: str, layout: List[Dict[str, Any]] = None,
+                 regions: List[Dict[str, Any]] = None):
         self.text = text
         self.layout = layout or []  # List of text blocks with coordinates
+        self.regions = regions or []  # PP-Structure regions: type, bbox, content
 
 
 class OCRService(ABC):
