@@ -5,6 +5,7 @@ from ...domain.entities.document import DocumentStatus
 from ...domain.entities.extraction import Extraction, ExtractionMethod
 from ...domain.entities.audit_trail import AuditTrail, AuditAction
 from ...domain.services.document_type_classifier import DocumentTypeClassifier
+from ...domain.services.layout_analyzer import LayoutAnalyzer
 from ...infrastructure.persistence.repositories import (
     DocumentRepository, ExtractionRepository, AuditTrailRepository
 )
@@ -81,12 +82,20 @@ class ExtractFieldsUseCase:
             # Get extraction schema based on document type
             schema = get_extraction_schema(classification.document_type.value)
 
+            # Build layout-aware context from PP-Structure regions (preferred)
+            # or fall back to raw layout data
+            layout_context = None
+            analyzer = LayoutAnalyzer()
+            if ocr_result.regions:
+                layout_context = analyzer.format_for_llm(ocr_result.regions, char_budget=3500)
+
             # Run LLM extraction
             try:
                 llm_result = self.llm_service.extract_fields(
                     ocr_result.text,
                     classification.document_type.value,
-                    schema
+                    schema,
+                    layout_context=layout_context
                 )
             except Exception as llm_error:
                 # Log the error for debugging
@@ -123,8 +132,11 @@ class ExtractFieldsUseCase:
                     "ocr_provider": type(self.ocr_service).__name__,
                     "llm_provider": llm_result.metadata.get("provider"),
                     "llm_model": llm_result.metadata.get("model"),
-                    "ocr_layout": ocr_result.layout[:500],
-                    "layout_element_count": len(ocr_result.layout),
+                    "ocr_regions_count": len(ocr_result.regions),
+                    "ocr_region_types": list({r.get("type") for r in ocr_result.regions}),
+                    "ocr_layout_element_count": len(ocr_result.layout),
+                    "layout_aware": layout_context is not None,
+                    "layout_formatted_chars": len(layout_context) if layout_context else 0,
                     **llm_result.metadata,
                     **classification_metadata,
                 }
