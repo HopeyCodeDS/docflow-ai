@@ -70,3 +70,8 @@ minio-data/
 # Temporary files
 *.tmp
 *.temp
+
+# TLS certificates
+nginx/certs/*.pem
+nginx/certs/*.key
+nginx/certs/*.crt
